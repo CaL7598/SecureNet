@@ -28,11 +28,17 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
+backend/securenet.db
 
 # Environment variables
 .env
