@@ -12,6 +12,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from '../utils/iconHelper';
 import { colors } from '../theme/colors';
+import { spacing, radii, textStyles } from '../theme/theme';
 import { NetworkAnalysis, RiskLevel, DeviceAnalysis } from '../types';
 import DeviceCard from '../components/DeviceCard';
 import SecurityScore from '../components/SecurityScore';
@@ -124,65 +125,64 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.md,
   },
   errorText: {
-    fontSize: 18,
+    ...textStyles.titleMedium,
     color: colors.text,
-    marginBottom: 20,
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   statusCard: {
     backgroundColor: colors.card,
-    margin: 20,
-    padding: 24,
-    borderRadius: 16,
+    margin: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
     alignItems: 'center',
   },
   metricsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    marginTop: 24,
+    marginTop: spacing.lg,
   },
   metric: {
     alignItems: 'center',
   },
   metricLabel: {
-    fontSize: 14,
+    ...textStyles.bodyMedium,
     color: colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   metricValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    ...textStyles.headlineSmall,
+    fontWeight: '700',
     color: colors.text,
   },
   devicesSection: {
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.md,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...textStyles.titleMedium,
     color: colors.text,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   scanAgainButton: {
     backgroundColor: colors.primary,
-    margin: 20,
-    paddingVertical: 18,
-    borderRadius: 12,
+    margin: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
     alignItems: 'center',
+    minHeight: 48,
   },
   scanAgainButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
+    ...textStyles.titleMedium,
+    color: colors.onPrimary,
   },
 });
 

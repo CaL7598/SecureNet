@@ -13,6 +13,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Icon from '../utils/iconHelper';
 import { colors } from '../theme/colors';
+import { spacing, radii, textStyles } from '../theme/theme';
 import { RiskLevel, ScanHistory } from '../types';
 import { getScanHistory } from '../services/storage';
 
@@ -146,74 +147,73 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    padding: 20,
-    paddingTop: 40,
+    padding: spacing.md,
+    paddingTop: spacing.xxl,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    ...textStyles.headlineLarge,
+    fontWeight: '700',
     color: colors.text,
   },
   subtitle: {
-    fontSize: 14,
+    ...textStyles.bodyMedium,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: spacing.xxl,
   },
   emptyText: {
-    fontSize: 20,
+    ...textStyles.titleLarge,
     fontWeight: '600',
     color: colors.text,
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   emptySubtext: {
-    fontSize: 14,
+    ...textStyles.bodyMedium,
     color: colors.textSecondary,
     textAlign: 'center',
   },
   historyCard: {
     backgroundColor: colors.card,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    padding: 16,
-    borderRadius: 12,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radii.md,
   },
   historyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
   scoreCircle: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: radii.full,
     backgroundColor: colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: spacing.md,
   },
   scoreText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...textStyles.titleLarge,
+    fontWeight: '700',
     color: colors.primary,
   },
   historyInfo: {
     flex: 1,
   },
   historyDate: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...textStyles.titleMedium,
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   historyTime: {
-    fontSize: 14,
+    ...textStyles.bodyMedium,
     color: colors.textSecondary,
   },
   historyStats: {
@@ -225,22 +225,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 12,
+    ...textStyles.labelMedium,
     color: colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...textStyles.headlineSmall,
+    fontWeight: '700',
     color: colors.text,
   },
   riskBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radii.sm,
   },
   riskBadgeText: {
-    fontSize: 12,
+    ...textStyles.labelMedium,
     fontWeight: '600',
     textTransform: 'uppercase',
   },

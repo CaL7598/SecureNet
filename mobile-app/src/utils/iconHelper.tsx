@@ -26,6 +26,9 @@ if (Platform.OS === 'web') {
     'help-circle': ReactIcons.MdHelpOutline,
     'chevron-right': ReactIcons.MdChevronRight,
     'lightbulb-on': ReactIcons.MdLightbulb,
+    'wifi': ReactIcons.MdWifi,
+    'account-plus': ReactIcons.MdPersonAdd,
+    'arrow-right': ReactIcons.MdArrowForward,
   };
 
   IconComponent = ({ name, size = 24, color = '#000', style }: any) => {

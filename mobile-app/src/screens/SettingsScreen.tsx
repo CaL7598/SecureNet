@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Icon from '../utils/iconHelper';
 import { colors } from '../theme/colors';
+import { spacing, radii, textStyles } from '../theme/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScanSettings } from '../types';
 
@@ -184,54 +185,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 40,
+    padding: spacing.md,
+    paddingTop: spacing.xxl,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    ...textStyles.headlineLarge,
+    fontWeight: '700',
     color: colors.text,
   },
   subtitle: {
-    fontSize: 16,
+    ...textStyles.bodyLarge,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   section: {
-    paddingHorizontal: 20,
-    marginBottom: 32,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.xl,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...textStyles.titleMedium,
     color: colors.text,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   settingCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    marginBottom: spacing.sm,
   },
   settingContent: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: spacing.md,
   },
   settingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...textStyles.titleMedium,
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   settingDescription: {
-    fontSize: 13,
+    ...textStyles.bodySmall,
     color: colors.textSecondary,
   },
   settingValue: {
@@ -239,9 +238,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   settingValueText: {
-    fontSize: 14,
+    ...textStyles.bodyMedium,
     color: colors.textSecondary,
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
 });
 

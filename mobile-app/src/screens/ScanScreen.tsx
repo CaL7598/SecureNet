@@ -14,6 +14,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Icon from '../utils/iconHelper';
 import { colors } from '../theme/colors';
+import { spacing, radii, textStyles } from '../theme/theme';
 import { DeviceScan } from '../types';
 import { analyzeNetwork } from '../services/api';
 import { scanNetwork } from '../services/networkScanner';
@@ -120,37 +121,49 @@ const ScanScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header */}
+      {/* Header - design: SECURENET + tagline */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>SecureNet</Text>
-          <Text style={styles.subtitle}>Wi-Fi Security Auditor</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.logoIcon}>
+            <Icon name="shield-check" size={20} color={colors.onPrimary} />
+          </View>
+          <Text style={styles.title}>SECURENET</Text>
         </View>
-        <Icon name="shield-check" size={32} color={colors.primary} />
+        <Text style={styles.version}>v1.0</Text>
       </View>
+      <Text style={styles.tagline}>NETWORK AUDITING FOR EVERYONE</Text>
 
       {/* Main Content */}
       <View style={styles.mainContent}>
-        <Icon name="scan-helper" size={120} color={colors.primary} style={styles.icon} />
-        
+        <Icon name="scan-helper" size={100} color={colors.primary} style={styles.icon} />
         <Text style={styles.scanTitle}>Scan Your Network</Text>
         <Text style={styles.description}>
-          Discover devices on your Wi-Fi network and identify security vulnerabilities in seconds.
+          Discover devices on your Wi‑Fi and identify security vulnerabilities in seconds.
         </Text>
 
-        {/* Features List */}
+        {/* Features List - design: core capabilities */}
+        <Text style={styles.featuresLabel}>CORE CAPABILITIES</Text>
         <View style={styles.featuresList}>
           <View style={styles.featureItem}>
-            <Icon name="check-circle" size={20} color={colors.success} />
-            <Text style={styles.featureText}>Device Discovery</Text>
+            <Icon name="check-circle" size={20} color={colors.primary} />
+            <View>
+              <Text style={styles.featureText}>Device Discovery</Text>
+              <Text style={styles.featureSub}>Maps every IP and MAC on your Wi‑Fi.</Text>
+            </View>
           </View>
           <View style={styles.featureItem}>
-            <Icon name="check-circle" size={20} color={colors.success} />
-            <Text style={styles.featureText}>Port Scanning</Text>
+            <Icon name="check-circle" size={20} color={colors.secondary} />
+            <View>
+              <Text style={styles.featureText}>Vulnerability Scan</Text>
+              <Text style={styles.featureSub}>Checks open ports and unpatched firmware.</Text>
+            </View>
           </View>
           <View style={styles.featureItem}>
-            <Icon name="check-circle" size={20} color={colors.success} />
-            <Text style={styles.featureText}>Vulnerability Analysis</Text>
+            <Icon name="check-circle" size={20} color={colors.tertiary} />
+            <View>
+              <Text style={styles.featureText}>Credential Audit</Text>
+              <Text style={styles.featureSub}>Detects dangerous default passwords.</Text>
+            </View>
           </View>
         </View>
 
@@ -217,7 +230,7 @@ const ScanScreen: React.FC = () => {
         disabled={isScanning}
       >
         {isScanning ? (
-          <ActivityIndicator color={colors.text} />
+          <ActivityIndicator color={colors.onPrimary} />
         ) : (
           <Text style={styles.scanButtonText}>Start Scan</Text>
         )}
@@ -233,138 +246,164 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    padding: 20,
+    padding: spacing.md,
+    paddingTop: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
-    marginTop: 20,
+    marginBottom: spacing.sm,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  logoIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    ...textStyles.titleLarge,
+    fontWeight: '900',
     color: colors.text,
   },
-  subtitle: {
-    fontSize: 16,
+  version: {
+    ...textStyles.labelSmall,
+    color: colors.success,
+  },
+  tagline: {
+    ...textStyles.labelSmall,
     color: colors.textSecondary,
-    marginTop: 4,
+    fontWeight: '700',
+    marginBottom: spacing.xl,
   },
   mainContent: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: spacing.xxl,
   },
   icon: {
-    marginBottom: 20,
+    marginBottom: spacing.md,
   },
   scanTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    ...textStyles.headlineSmall,
+    fontWeight: '700',
     color: colors.text,
-    marginBottom: 16,
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   description: {
-    fontSize: 16,
+    ...textStyles.bodyLarge,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 20,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.md,
+  },
+  featuresLabel: {
+    ...textStyles.labelSmall,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    alignSelf: 'flex-start',
+    marginBottom: spacing.sm,
   },
   featuresList: {
     width: '100%',
-    marginBottom: 30,
+    marginBottom: spacing.xl,
   },
   featureItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingLeft: 20,
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   featureText: {
-    fontSize: 16,
+    ...textStyles.titleMedium,
     color: colors.text,
-    marginLeft: 12,
+  },
+  featureSub: {
+    ...textStyles.bodySmall,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   scanModeContainer: {
     width: '100%',
-    marginBottom: 30,
+    marginBottom: spacing.xl,
   },
   scanModeLabel: {
-    fontSize: 16,
+    ...textStyles.titleSmall,
     color: colors.text,
-    marginBottom: 12,
-    paddingLeft: 20,
+    marginBottom: spacing.sm,
   },
   modeToggle: {
     flexDirection: 'row',
     backgroundColor: colors.surfaceVariant,
-    borderRadius: 25,
-    padding: 4,
+    borderRadius: radii.xl,
+    padding: spacing.xs,
   },
   modeButton: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 20,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.lg,
     alignItems: 'center',
   },
   modeButtonActive: {
     backgroundColor: colors.primary,
   },
   modeButtonText: {
-    fontSize: 14,
+    ...textStyles.labelLarge,
     color: colors.textSecondary,
-    fontWeight: '500',
   },
   modeButtonTextActive: {
-    color: colors.text,
+    color: colors.onPrimary,
     fontWeight: '600',
   },
   scanButton: {
     backgroundColor: colors.primary,
-    paddingVertical: 18,
-    borderRadius: 12,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
     alignItems: 'center',
     marginTop: 'auto',
-    marginBottom: 20,
+    marginBottom: spacing.md,
+    minHeight: 48,
   },
   scanButtonDisabled: {
     opacity: 0.6,
   },
   scanButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
+    ...textStyles.titleMedium,
+    color: colors.onPrimary,
   },
   progressContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 20,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.md,
   },
   progressText: {
-    fontSize: 14,
+    ...textStyles.bodyMedium,
     color: colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   progressBar: {
     height: 4,
     backgroundColor: colors.surfaceVariant,
-    borderRadius: 2,
+    borderRadius: radii.xs,
     overflow: 'hidden',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   progressFill: {
     height: '100%',
     backgroundColor: colors.primary,
-    borderRadius: 2,
+    borderRadius: radii.xs,
   },
   progressPercent: {
-    fontSize: 12,
+    ...textStyles.labelSmall,
     color: colors.textSecondary,
     textAlign: 'center',
   },

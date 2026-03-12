@@ -1,8 +1,8 @@
 /**
- * Main Navigation Setup
+ * Main Navigation Setup (tab + nested stacks)
+ * Note: The root NavigationContainer is provided in App.tsx.
  */
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { colors } from '../theme/colors';
@@ -56,56 +56,54 @@ function ScanStack() {
 
 function AppNavigator() {
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={{
-          tabBarActiveTintColor: colors.tabActive,
-          tabBarInactiveTintColor: colors.tabInactive,
-          tabBarStyle: {
-            backgroundColor: colors.surface,
-            borderTopColor: colors.border,
-          },
-          headerShown: false,
+    <Tab.Navigator
+      screenOptions={{
+        tabBarActiveTintColor: colors.tabActive,
+        tabBarInactiveTintColor: colors.tabInactive,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+        },
+        headerShown: false,
+      }}
+    >
+      <Tab.Screen
+        name="Scan"
+        component={ScanStack}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="scan-helper" size={size} color={color} />
+          ),
         }}
-      >
-        <Tab.Screen
-          name="Scan"
-          component={ScanStack}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="scan-helper" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Map"
-          component={MapScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="map" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="History"
-          component={HistoryScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="history" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="cog" size={size} color={color} />
-            ),
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+      />
+      <Tab.Screen
+        name="Map"
+        component={MapScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="map" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="history" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="cog" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
   );
 }
 
