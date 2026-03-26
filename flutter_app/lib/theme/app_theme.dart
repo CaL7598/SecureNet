@@ -10,14 +10,14 @@ class AppTheme {
   static const Color secondary = Color(0xFFB8D38F);
   static const Color tertiary = Color(0xFFF4D6A0);
   static const Color error = Color(0xFFFF7A6E);
-  static const Color background = Color(0xFF141210);
-  static const Color onBackground = Color(0xFFF5EEE6);
-  static const Color surface = Color(0xFF1B1815);
-  static const Color onSurface = Color(0xFFF5EEE6);
-  static const Color surfaceVariant = Color(0xFF2B2621);
-  static const Color onSurfaceVariant = Color(0xFFD0C4B5);
-  static const Color outline = Color(0xFF7C6F63);
-  static const Color divider = Color(0xFF322C26);
+  static const Color background = Color(0xFFFFFFFF);
+  static const Color onBackground = Color(0xFF1F1A16);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color onSurface = Color(0xFF1F1A16);
+  static const Color surfaceVariant = Color(0xFFF4EFE9);
+  static const Color onSurfaceVariant = Color(0xFF6F6458);
+  static const Color outline = Color(0xFFC5B9AC);
+  static const Color divider = Color(0xFFE6DED5);
 
   static const Color success = Color(0xFF7FD38B);
   static const Color warning = Color(0xFFFFB56B);

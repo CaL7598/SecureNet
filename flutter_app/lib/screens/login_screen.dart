@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../widgets/auth_video_background.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.onLogin, required this.onNavigateToSignUp});
@@ -43,12 +44,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg),
-          child: Column(
-            children: [
+      body: AuthVideoBackground(
+        child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg),
+              child: Column(
+                children: [
               const SizedBox(height: AppTheme.spacingXxxl),
               // Logo with subtle glow
               Container(
@@ -238,9 +239,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
               const SizedBox(height: AppTheme.spacingXxl),
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
       ),
     );
   }

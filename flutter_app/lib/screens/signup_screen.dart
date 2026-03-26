@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../widgets/auth_video_background.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key, required this.onSignUp, required this.onNavigateToLogin});
@@ -64,7 +65,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -78,11 +78,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg),
-          child: Column(
-            children: [
+      extendBodyBehindAppBar: true,
+      body: AuthVideoBackground(
+        child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg),
+              child: Column(
+                children: [
               const SizedBox(height: AppTheme.spacingLg),
               Container(
                 width: 64,
@@ -292,9 +294,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ],
               ),
               const SizedBox(height: AppTheme.spacingXxl),
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
       ),
     );
   }

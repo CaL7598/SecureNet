@@ -64,17 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
             return Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppTheme.background,
-                    const Color(0xFF121224),
-                    AppTheme.background,
-                  ],
-                ),
-              ),
+              color: AppTheme.background,
               child: Column(
                 children: [
                   const Spacer(flex: 2),
