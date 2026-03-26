@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     
     # Security
     API_KEY: str = "dev-api-key-change-in-production"
+    PASSWORD_RESET_CODE_TTL_MINUTES: int = 15
+    PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS: int = 45
     
     # App
     APP_NAME: str = "SecureNet"

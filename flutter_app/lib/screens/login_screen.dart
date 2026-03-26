@@ -3,10 +3,16 @@ import '../theme/app_theme.dart';
 import '../widgets/auth_video_background.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.onLogin, required this.onNavigateToSignUp});
+  const LoginScreen({
+    super.key,
+    required this.onLogin,
+    required this.onNavigateToSignUp,
+    required this.onForgotPassword,
+  });
 
   final VoidCallback onLogin;
   final VoidCallback onNavigateToSignUp;
+  final VoidCallback onForgotPassword;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -199,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: AppTheme.spacingMd),
                     Center(
                       child: TextButton(
-                        onPressed: () {},
+                        onPressed: widget.onForgotPassword,
                         child: Text(
                           'Forgot password?',
                           style: TextStyle(color: AppTheme.primary, fontSize: 14, fontWeight: FontWeight.w500),

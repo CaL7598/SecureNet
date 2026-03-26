@@ -41,4 +41,42 @@ class ApiService {
       return false;
     }
   }
+
+  Future<bool> requestPasswordReset(String email) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$_baseUrl/api/v1/auth/password-reset/request'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 10));
+      return res.statusCode >= 200 && res.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> confirmPasswordReset({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$_baseUrl/api/v1/auth/password-reset/confirm'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'email': email,
+              'code': code,
+              'new_password': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+      return res.statusCode >= 200 && res.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
+  }
 }

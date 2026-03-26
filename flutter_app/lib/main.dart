@@ -4,6 +4,7 @@ import 'theme/app_theme.dart';
 import 'providers/app_state.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/main_screen.dart';
 
@@ -33,6 +34,13 @@ class SecureNetApp extends StatelessWidget {
           if (!state.isAuthenticated) {
             return LoginScreen(
               onLogin: state.login,
+              onForgotPassword: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ResetPasswordScreen(),
+                  ),
+                );
+              },
               onNavigateToSignUp: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(

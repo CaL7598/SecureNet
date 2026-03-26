@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../theme/app_theme.dart';
 import '../models/device.dart';
 import '../services/api_service.dart';
@@ -16,13 +17,16 @@ class _ScanScreenState extends State<ScanScreen> {
   final ApiService _api = ApiService();
   final NetworkScanner _scanner = NetworkScanner();
   bool _isScanning = false;
+  bool _cancelRequested = false;
   int _progress = 0;
   String _message = '';
-  bool _demoMode = true;
+  bool _demoMode = !kReleaseMode;
+  bool _deepScan = false;
 
   Future<void> _startScan() async {
     setState(() {
       _isScanning = true;
+      _cancelRequested = false;
       _progress = 0;
       _message = 'Starting...';
     });
@@ -53,16 +57,62 @@ class _ScanScreenState extends State<ScanScreen> {
         ),
       ];
     } else {
-      devices = await _scanner.scan((progress, message) {
+      devices = await _scanner.scanWithOptions(
+        onProgress: (progress, message) {
+          if (!mounted) return;
+          setState(() {
+            _progress = progress;
+            _message = message;
+          });
+        },
+        deepScan: _deepScan,
+        shouldCancel: () => _cancelRequested,
+      );
+      if (_cancelRequested) {
         if (!mounted) return;
         setState(() {
-          _progress = progress;
-          _message = message;
+          _isScanning = false;
+          _message = 'Scan canceled';
         });
-      });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Scan canceled successfully.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
     }
 
     if (!mounted) return;
+    if (devices.isEmpty) {
+      setState(() {
+        _isScanning = false;
+        _progress = 0;
+        _message = 'No reachable devices found';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No reachable devices found on this network.'),
+        ),
+      );
+      return;
+    }
+
+    if (_cancelRequested) {
+      setState(() {
+        _isScanning = false;
+        _message = 'Scan canceled';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Scan canceled successfully.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _progress = 70;
       _message = 'Analyzing network...';
@@ -113,9 +163,37 @@ class _ScanScreenState extends State<ScanScreen> {
               _buildFeature(context, Icons.radar_rounded, 'Vulnerability Scan', 'Checks open ports and unpatched firmware.', AppTheme.secondary),
               _buildFeature(context, Icons.lock_rounded, 'Credential Audit', 'Detects dangerous default passwords.', AppTheme.tertiary),
               const SizedBox(height: AppTheme.spacingLg),
-              _buildSectionLabel(context, 'Scan mode'),
+              if (!kReleaseMode) ...[
+                _buildSectionLabel(context, 'Scan mode'),
+                const SizedBox(height: AppTheme.spacingSm),
+                _buildModeSelector(context),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingSm),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceVariant.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.radar_rounded, size: 16, color: AppTheme.primary),
+                      const SizedBox(width: AppTheme.spacingSm),
+                      Expanded(
+                        child: Text(
+                          'Release mode uses real network scan automatically.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppTheme.spacingMd),
+              _buildSectionLabel(context, 'Scan depth'),
               const SizedBox(height: AppTheme.spacingSm),
-              _buildModeSelector(context),
+              _buildDepthSelector(context),
               if (_isScanning) _buildProgressCard(context),
               const SizedBox(height: AppTheme.spacingXl),
               _buildPrimaryButton(context),
@@ -313,6 +391,25 @@ class _ScanScreenState extends State<ScanScreen> {
                     color: AppTheme.onSurfaceVariant,
                   ),
             ),
+            const SizedBox(height: AppTheme.spacingSm),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _cancelRequested
+                    ? null
+                    : () {
+                        setState(() {
+                          _cancelRequested = true;
+                          _message = 'Canceling scan...';
+                        });
+                      },
+                icon: const Icon(Icons.stop_circle_outlined, size: 16, color: AppTheme.error),
+                label: const Text(
+                  'Cancel scan',
+                  style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -343,6 +440,35 @@ class _ScanScreenState extends State<ScanScreen> {
                 ),
               )
             : const Text('Start scan', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+      ),
+    );
+  }
+
+  Widget _buildDepthSelector(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingXs),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.outline.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ModeChip(
+              label: 'Quick',
+              selected: !_deepScan,
+              onTap: () => setState(() => _deepScan = false),
+            ),
+          ),
+          Expanded(
+            child: _ModeChip(
+              label: 'Deep',
+              selected: _deepScan,
+              onTap: () => setState(() => _deepScan = true),
+            ),
+          ),
+        ],
       ),
     );
   }

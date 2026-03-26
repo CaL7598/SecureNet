@@ -3,7 +3,7 @@ import 'dart:io';
 
 /// Set to your PC's IP (e.g. '192.168.1.100') when running on a **physical phone** in debug.
 /// Leave null for emulator/simulator. Find your IP: Windows `ipconfig`, macOS/Linux `ifconfig`.
-const String kPhysicalDeviceHost = '192.168.3.175';
+const String kPhysicalDeviceHost = '192.168.1.175';
 
 String get apiBaseUrl {
   if (kPhysicalDeviceHost != null && kPhysicalDeviceHost!.isNotEmpty) {

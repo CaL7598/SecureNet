@@ -16,6 +16,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _dailySummaryEnabled = false;
   String _scanInterval = 'Manual only';
+  String _defaultScanMode = 'Real scan';
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +46,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.qr_code_scanner_rounded,
                 title: 'Default scan mode',
                 subtitle: 'Real or demo mode',
-                value: 'Real scan',
+                value: _defaultScanMode,
+                onTap: _chooseDefaultScanMode,
               ),
               const SizedBox(height: AppTheme.spacingLg),
               _buildSectionLabel(context, 'Notifications'),
@@ -79,6 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.verified_user_rounded,
                 title: 'Privacy and data',
                 subtitle: 'Control what gets stored and synced',
+                onTap: _showPrivacyInfo,
               ),
               _SettingTile(
                 icon: Icons.info_outline_rounded,
@@ -269,6 +272,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: const [
         Text('SecureNet helps audit local Wi-Fi security and identify network risks.'),
       ],
+    );
+  }
+
+  void _chooseDefaultScanMode() {
+    final options = <String>['Real scan', 'Demo mode'];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusXl)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Choose default scan mode',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: AppTheme.spacingSm),
+                ...options.map(
+                  (option) => ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    ),
+                    title: Text(option),
+                    trailing: option == _defaultScanMode
+                        ? const Icon(Icons.check_rounded, color: AppTheme.primary)
+                        : null,
+                    onTap: () {
+                      setState(() => _defaultScanMode = option);
+                      Navigator.of(sheetContext).pop();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showPrivacyInfo() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Privacy and data'),
+        content: const Text(
+          'SecureNet stores scan data for your account experience. '
+          'Sensitive credentials are not shared, and you can sign out at any time.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 }

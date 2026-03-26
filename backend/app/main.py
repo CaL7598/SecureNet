@@ -4,7 +4,7 @@ SecureNet Backend - FastAPI Application Entry Point
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.api.endpoints import analyze, devices, vulnerabilities
+from app.api.endpoints import analyze, auth, devices, vulnerabilities
 
 app = FastAPI(
     title="SecureNet API",
@@ -25,6 +25,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(analyze.router, prefix="/api/v1", tags=["Analysis"])
+app.include_router(auth.router, prefix="/api/v1", tags=["Auth"])
 app.include_router(devices.router, prefix="/api/v1", tags=["Devices"])
 app.include_router(vulnerabilities.router, prefix="/api/v1", tags=["Vulnerabilities"])
 
