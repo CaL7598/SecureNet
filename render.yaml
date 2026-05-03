@@ -1,0 +1,26 @@
+# Render Blueprint — API only (no Postgres here).
+#
+# Render’s *free* PostgreSQL tier expires and data can be deleted (see Render notices).
+# Use a database that does not rely on that: Neon, Supabase, or paid Render Postgres.
+#
+# After this service is created, set DATABASE_URL in the Render dashboard to your
+# external Postgres connection string, then redeploy if the first build failed.
+
+version: "1"
+
+services:
+  - type: web
+    name: securenet-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    healthCheckPath: /api/v1/health
+    envVars:
+      # Set in Dashboard → Environment (from Neon / Supabase / paid Render Postgres).
+      # Do not use Render free Postgres if you need data to stay without time limits.
+      - key: DATABASE_URL
+        sync: false
+      - key: DEBUG
+        value: "false"

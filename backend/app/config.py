@@ -1,15 +1,24 @@
 """
 Application Configuration
 """
-from pydantic_settings import BaseSettings
 from typing import List
+
+from pydantic import field_validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     """Application settings"""
     
-    # Database
+    # Database (Render/Heroku often use postgres://; SQLAlchemy expects postgresql://)
     DATABASE_URL: str = "postgresql://securenet:securenet123@localhost:5432/securenet"
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def normalize_database_url(cls, v: object) -> object:
+        if isinstance(v, str) and v.startswith("postgres://"):
+            return "postgresql://" + v[len("postgres://"):]
+        return v
     
     # API
     API_V1_PREFIX: str = "/api/v1"

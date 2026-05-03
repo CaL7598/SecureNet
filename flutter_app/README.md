@@ -16,13 +16,18 @@ flutter run
 
 The app picks the API base URL by platform: **Android emulator** uses `http://10.0.2.2:8000`, **iOS simulator** and **web** use `http://localhost:8000`.  
 
-**Physical phone (USB debug):** Set your PC’s LAN IP in `lib/services/api_base_url_io.dart`:
+**Physical phone (local backend):** Set your PC’s LAN IP in `lib/services/api_base_url_io.dart` as `kPhysicalDeviceHost` (e.g. `'192.168.1.100'`). Use `null` when using the emulator.
 
-```dart
-const String? kPhysicalDeviceHost = '192.168.1.100';  // your PC’s IP
+**Hosted API (phone anywhere):** Build with your public HTTPS origin (no trailing slash required):
+
+```bash
+flutter run --dart-define=API_BASE_URL=https://api.yourdomain.com
+flutter build apk --dart-define=API_BASE_URL=https://api.yourdomain.com
 ```
 
-Find your IP: Windows `ipconfig`, macOS/Linux `ifconfig`. Keep the phone and PC on the same Wi‑Fi. Set back to `null` when using the emulator.
+Set the backend’s `ALLOWED_ORIGINS` (or `*` only for quick tests) and use a **managed PostgreSQL** URL in `DATABASE_URL` on the host.
+
+**Render + DB:** Deploy the API with the repo-root `render.yaml` or `backend/RENDER_DEPLOY.md`. For **Supabase** step-by-step (connection URI, `.env`, Render), use **`backend/SUPABASE_SETUP.md`**. Use your Web Service URL in `API_BASE_URL`.
 
 ## Backend
 
