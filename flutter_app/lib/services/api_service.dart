@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../models/device.dart';
 import 'api_base_url.dart';
@@ -12,6 +13,7 @@ class ApiService {
   static bool _refreshInFlight = false;
   String? _lastAuthError;
   String? get lastAuthError => _lastAuthError;
+  static const Duration _authTimeout = Duration(seconds: 40);
 
   void setBearerToken(String? token) {
     _globalBearerToken = token;
@@ -136,13 +138,17 @@ class ApiService {
               'full_name': fullName,
             }),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(_authTimeout);
       if (res.statusCode < 200 || res.statusCode >= 300) {
         _lastAuthError = _extractErrorMessage(res);
         return null;
       }
       _lastAuthError = null;
       return jsonDecode(res.body) as Map<String, dynamic>;
+    } on TimeoutException {
+      _lastAuthError =
+          'Server is waking up. Please wait a moment and try again.';
+      return null;
     } catch (_) {
       _lastAuthError = 'Unable to reach backend. Check network and API URL.';
       return null;
@@ -160,13 +166,17 @@ class ApiService {
             headers: _headers(),
             body: jsonEncode({'email': email, 'password': password}),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(_authTimeout);
       if (res.statusCode < 200 || res.statusCode >= 300) {
         _lastAuthError = _extractErrorMessage(res);
         return null;
       }
       _lastAuthError = null;
       return jsonDecode(res.body) as Map<String, dynamic>;
+    } on TimeoutException {
+      _lastAuthError =
+          'Server is waking up. Please wait a moment and try again.';
+      return null;
     } catch (_) {
       _lastAuthError = 'Unable to reach backend. Check network and API URL.';
       return null;
