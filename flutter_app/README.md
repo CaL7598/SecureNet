@@ -7,18 +7,16 @@ Flutter version of the SecureNet Wi-Fi security auditing app. Runs on **iOS**, *
 ```bash
 cd flutter_app
 flutter pub get
-flutter run
+flutter run --dart-define=API_BASE_URL=https://api.yourdomain.com
 ```
 
 - **Android (device or emulator):** `flutter run -d android`
 - **iOS (simulator or device, macOS only):** `flutter run -d ios`
 - **Web:** `flutter run -d chrome`
 
-The app picks the API base URL by platform: **Android emulator** uses `http://10.0.2.2:8000`, **iOS simulator** and **web** use `http://localhost:8000`.  
+The app is now locked to **hosted API mode only**. Localhost/LAN fallbacks are disabled.  
 
-**Physical phone (local backend):** Set your PC’s LAN IP in `lib/services/api_base_url_io.dart` as `kPhysicalDeviceHost` (e.g. `'192.168.1.100'`). Use `null` when using the emulator.
-
-**Hosted API (phone anywhere):** Build with your public HTTPS origin (no trailing slash required):
+Build or run with your public HTTPS origin (no trailing slash required):
 
 ```bash
 flutter run --dart-define=API_BASE_URL=https://api.yourdomain.com

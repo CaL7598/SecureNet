@@ -1,4 +1,4 @@
-// Web (no dart:io): optional compile-time API URL.
+// Web (no dart:io): production URL only.
 const String kApiBaseUrlFromEnvironment = String.fromEnvironment('API_BASE_URL');
 
 String _trimTrailingSlash(String url) {
@@ -7,8 +7,12 @@ String _trimTrailingSlash(String url) {
 }
 
 String get apiBaseUrl {
-  if (kApiBaseUrlFromEnvironment.isNotEmpty) {
-    return _trimTrailingSlash(kApiBaseUrlFromEnvironment);
+  final env = kApiBaseUrlFromEnvironment.trim();
+  if (env.isNotEmpty) {
+    return _trimTrailingSlash(env);
   }
-  return 'http://localhost:8000';
+  throw StateError(
+    'API_BASE_URL is required. Build/run with '
+    '--dart-define=API_BASE_URL=https://your-api-host',
+  );
 }
