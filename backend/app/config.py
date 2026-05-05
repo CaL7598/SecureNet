@@ -34,6 +34,15 @@ class Settings(BaseSettings):
     PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS: int = 45
     EMAIL_VERIFICATION_CODE_TTL_MINUTES: int = 20
     RATE_LIMIT_REQUESTS_PER_MINUTE: int = 120
+
+    # Email delivery (SMTP)
+    EMAIL_DELIVERY_ENABLED: bool = False
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_USE_TLS: bool = True
+    EMAIL_FROM: str = "noreply@securenet.app"
     
     # App
     APP_NAME: str = "SecureNet"

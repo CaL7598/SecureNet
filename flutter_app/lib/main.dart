@@ -58,6 +58,7 @@ class SecureNetApp extends StatelessWidget {
                   email: (user['email'] as String?) ?? email,
                   displayName: user['full_name'] as String?,
                   emailVerified: user['is_email_verified'] == true,
+                  promptEmailVerification: false,
                 );
                 await state.syncProfileAndHistoryFromBackend(_api);
                 return null;
@@ -96,6 +97,7 @@ class SecureNetApp extends StatelessWidget {
                           email: (user['email'] as String?) ?? email,
                           displayName: user['full_name'] as String?,
                           emailVerified: user['is_email_verified'] == true,
+                          promptEmailVerification: true,
                         );
                         await state.syncProfileAndHistoryFromBackend(_api);
                         return null;
@@ -107,7 +109,7 @@ class SecureNetApp extends StatelessWidget {
               },
             );
           }
-          if (!state.emailVerified) {
+          if (state.promptEmailVerification && !state.emailVerified) {
             return EmailVerificationScreen(api: _api);
           }
           return _AuthedHome(api: _api);
@@ -156,6 +158,7 @@ class _AuthedHomeState extends State<_AuthedHome> {
       email: (user['email'] as String?) ?? state.email,
       displayName: user['full_name'] as String?,
       emailVerified: user['is_email_verified'] == true,
+      promptEmailVerification: false,
     );
     await state.syncProfileAndHistoryFromBackend(widget.api);
   }

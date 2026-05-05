@@ -28,6 +28,8 @@ class AppState extends ChangeNotifier {
   String? get refreshToken => _refreshToken;
   bool _emailVerified = false;
   bool get emailVerified => _emailVerified;
+  bool _promptEmailVerification = false;
+  bool get promptEmailVerification => _promptEmailVerification;
 
   String _displayName = 'SecureNet User';
   String get displayName => _displayName;
@@ -57,6 +59,7 @@ class AppState extends ChangeNotifier {
     required String email,
     String? displayName,
     bool emailVerified = false,
+    bool promptEmailVerification = false,
   }) {
     _accessToken = token;
     _refreshToken = refreshToken;
@@ -65,6 +68,7 @@ class AppState extends ChangeNotifier {
       _displayName = displayName.trim();
     }
     _emailVerified = emailVerified;
+    _promptEmailVerification = !emailVerified && promptEmailVerification;
     _isAuthenticated = true;
     _persistAuth();
     _persistProfile();
@@ -85,6 +89,7 @@ class AppState extends ChangeNotifier {
     _accessToken = null;
     _refreshToken = null;
     _emailVerified = false;
+    _promptEmailVerification = false;
     _scanHistory = [];
     _scanConsentAccepted = false;
     _persistScanHistory();
@@ -100,6 +105,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> setEmailVerified(bool value) async {
     _emailVerified = value;
+    if (value) _promptEmailVerification = false;
     await _persistAuth();
     notifyListeners();
   }
@@ -135,12 +141,14 @@ class AppState extends ChangeNotifier {
       _accessToken = token;
       _refreshToken = data['refresh_token'] as String?;
       _emailVerified = data['email_verified'] == true;
+      _promptEmailVerification = data['prompt_email_verification'] == true;
       notifyListeners();
     } catch (_) {
       _isAuthenticated = false;
       _accessToken = null;
       _refreshToken = null;
       _emailVerified = false;
+      _promptEmailVerification = false;
     }
   }
 
@@ -208,6 +216,7 @@ class AppState extends ChangeNotifier {
         'access_token': _accessToken,
         'refresh_token': _refreshToken,
         'email_verified': _emailVerified,
+        'prompt_email_verification': _promptEmailVerification,
       });
       await prefs.setString(_authStorageKey, payload);
     } catch (_) {

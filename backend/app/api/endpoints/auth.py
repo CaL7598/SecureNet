@@ -18,7 +18,7 @@ from app.models.email_verification_token import EmailVerificationToken
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.services.email_service import send_password_reset_code
+from app.services.email_service import send_email_verification_code, send_password_reset_code
 
 router = APIRouter()
 
@@ -159,8 +159,7 @@ def get_current_user_optional(
 
 
 def _send_verification_code(email: str, code: str) -> None:
-    # Reuse existing mail abstraction for now.
-    send_password_reset_code(email=email, code=code)
+    send_email_verification_code(email=email, code=code)
 
 
 @router.post("/auth/register", response_model=TokenOut)
