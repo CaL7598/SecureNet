@@ -41,11 +41,15 @@ class SecureNetApp extends StatelessWidget {
             return LoginScreen(
               onLogin: (email, password) async {
                 final session = await _api.login(email: email, password: password);
-                if (session == null) return false;
+                if (session == null) {
+                  return _api.lastAuthError ?? 'Login failed. Please try again.';
+                }
                 final token = session['access_token'] as String?;
                 final refreshToken = session['refresh_token'] as String?;
                 final user = session['user'] as Map<String, dynamic>?;
-                if (token == null || refreshToken == null || user == null) return false;
+                if (token == null || refreshToken == null || user == null) {
+                  return 'Unexpected auth response from server.';
+                }
                 _api.setBearerToken(token);
                 _api.setRefreshToken(refreshToken);
                 state.loginWithSession(
@@ -56,7 +60,7 @@ class SecureNetApp extends StatelessWidget {
                   emailVerified: user['is_email_verified'] == true,
                 );
                 await state.syncProfileAndHistoryFromBackend(_api);
-                return true;
+                return null;
               },
               onForgotPassword: () {
                 Navigator.of(context).push(
@@ -75,11 +79,15 @@ class SecureNetApp extends StatelessWidget {
                           password: password,
                           fullName: fullName,
                         );
-                        if (session == null) return false;
+                        if (session == null) {
+                          return _api.lastAuthError ?? 'Sign up failed. Please try again.';
+                        }
                         final token = session['access_token'] as String?;
                         final refreshToken = session['refresh_token'] as String?;
                         final user = session['user'] as Map<String, dynamic>?;
-                        if (token == null || refreshToken == null || user == null) return false;
+                        if (token == null || refreshToken == null || user == null) {
+                          return 'Unexpected auth response from server.';
+                        }
                         _api.setBearerToken(token);
                         _api.setRefreshToken(refreshToken);
                         state.loginWithSession(
@@ -90,7 +98,7 @@ class SecureNetApp extends StatelessWidget {
                           emailVerified: user['is_email_verified'] == true,
                         );
                         await state.syncProfileAndHistoryFromBackend(_api);
-                        return true;
+                        return null;
                       },
                       onNavigateToLogin: () => Navigator.of(context).pop(),
                     ),

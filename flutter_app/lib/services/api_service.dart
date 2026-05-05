@@ -10,6 +10,8 @@ class ApiService {
   static String? _globalBearerToken;
   static String? _globalRefreshToken;
   static bool _refreshInFlight = false;
+  String? _lastAuthError;
+  String? get lastAuthError => _lastAuthError;
 
   void setBearerToken(String? token) {
     _globalBearerToken = token;
@@ -135,9 +137,14 @@ class ApiService {
             }),
           )
           .timeout(const Duration(seconds: 10));
-      if (res.statusCode < 200 || res.statusCode >= 300) return null;
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        _lastAuthError = _extractErrorMessage(res);
+        return null;
+      }
+      _lastAuthError = null;
       return jsonDecode(res.body) as Map<String, dynamic>;
     } catch (_) {
+      _lastAuthError = 'Unable to reach backend. Check network and API URL.';
       return null;
     }
   }
@@ -154,11 +161,31 @@ class ApiService {
             body: jsonEncode({'email': email, 'password': password}),
           )
           .timeout(const Duration(seconds: 10));
-      if (res.statusCode < 200 || res.statusCode >= 300) return null;
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        _lastAuthError = _extractErrorMessage(res);
+        return null;
+      }
+      _lastAuthError = null;
       return jsonDecode(res.body) as Map<String, dynamic>;
     } catch (_) {
+      _lastAuthError = 'Unable to reach backend. Check network and API URL.';
       return null;
     }
+  }
+
+  String _extractErrorMessage(http.Response response) {
+    try {
+      final body = jsonDecode(response.body);
+      if (body is Map<String, dynamic>) {
+        final detail = body['detail'];
+        if (detail is String && detail.trim().isNotEmpty) {
+          return detail.trim();
+        }
+      }
+    } catch (_) {
+      // Fall back to status code below.
+    }
+    return 'Request failed (${response.statusCode}).';
   }
 
   Future<Map<String, dynamic>?> refreshSession() async {

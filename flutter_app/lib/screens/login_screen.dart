@@ -10,7 +10,7 @@ class LoginScreen extends StatefulWidget {
     required this.onForgotPassword,
   });
 
-  final Future<bool> Function(String email, String password) onLogin;
+  final Future<String?> Function(String email, String password) onLogin;
   final VoidCallback onNavigateToSignUp;
   final VoidCallback onForgotPassword;
 
@@ -41,16 +41,14 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       _loading = true;
     });
-    final ok = await widget.onLogin(
+    final error = await widget.onLogin(
       _emailController.text.trim(),
       _passwordController.text,
     );
     if (!mounted) return;
     setState(() {
       _loading = false;
-      if (!ok) {
-        _error = 'Login failed. Check your credentials or backend connection.';
-      }
+      _error = error;
     });
   }
 
