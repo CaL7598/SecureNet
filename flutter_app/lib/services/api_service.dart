@@ -181,6 +181,19 @@ class ApiService {
         if (detail is String && detail.trim().isNotEmpty) {
           return detail.trim();
         }
+        if (detail is List && detail.isNotEmpty) {
+          final first = detail.first;
+          if (first is Map<String, dynamic>) {
+            final msg = first['msg'];
+            if (msg is String && msg.trim().isNotEmpty) {
+              return msg.trim();
+            }
+          }
+          final rendered = detail.map((e) => e.toString()).join('; ');
+          if (rendered.trim().isNotEmpty) {
+            return rendered;
+          }
+        }
       }
     } catch (_) {
       // Fall back to status code below.
