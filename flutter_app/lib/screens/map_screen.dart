@@ -71,26 +71,33 @@ class _MapScreenState extends State<MapScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Network map',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppTheme.onSurface,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
-                  ),
-            ),
-            const SizedBox(height: AppTheme.spacingXs),
-            Text(
-              'High-level view of your Wi‑Fi topology',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.onSurfaceVariant,
-                  ),
-            ),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Network map',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: AppTheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+              ),
+              const SizedBox(height: AppTheme.spacingXs),
+              Text(
+                'High-level view of your Wi‑Fi topology',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ),
         ),
+        const SizedBox(width: AppTheme.spacingSm),
         FutureBuilder<bool>(
           future: _healthFuture,
           builder: (context, snapshot) {
