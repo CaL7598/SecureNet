@@ -180,9 +180,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(AppTheme.spacingLg),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceVariant.withOpacity(0.65),
+                          gradient: LinearGradient(
+                            colors: [
+                              AppTheme.primaryContainer.withValues(alpha: 0.2),
+                              AppTheme.surfaceVariant.withValues(alpha: 0.88),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-                          border: Border.all(color: AppTheme.outline.withOpacity(0.2)),
+                          border: Border.all(color: AppTheme.outline.withValues(alpha: 0.25)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.22),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,7 +229,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                           ),
                           filled: true,
-                          fillColor: AppTheme.background.withOpacity(0.55),
+                          fillColor: AppTheme.background.withValues(alpha: 0.5),
                         ),
                         keyboardType: TextInputType.emailAddress,
                       ),
@@ -231,7 +245,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                             ),
                             filled: true,
-                            fillColor: AppTheme.background.withOpacity(0.55),
+                            fillColor: AppTheme.background.withValues(alpha: 0.5),
                           ),
                           keyboardType: TextInputType.number,
                         ),
@@ -256,7 +270,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                             ),
                             filled: true,
-                            fillColor: AppTheme.background.withOpacity(0.55),
+                            fillColor: AppTheme.background.withValues(alpha: 0.5),
                           ),
                         ),
                         const SizedBox(height: AppTheme.spacingMd),
@@ -280,15 +294,33 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                             ),
                             filled: true,
-                            fillColor: AppTheme.background.withOpacity(0.55),
+                            fillColor: AppTheme.background.withValues(alpha: 0.5),
                           ),
                         ),
                       ],
                       if (_error != null) ...[
                         const SizedBox(height: AppTheme.spacingMd),
-                        Text(
-                          _error!,
-                          style: const TextStyle(color: AppTheme.error),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.spacingSm,
+                            vertical: AppTheme.spacingXs,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.error.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: AppTheme.error, size: 16),
+                              const SizedBox(width: AppTheme.spacingXs),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: const TextStyle(color: AppTheme.error),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                       const SizedBox(height: AppTheme.spacingLg),

@@ -26,8 +26,14 @@ class Settings(BaseSettings):
     
     # Security
     API_KEY: str = "dev-api-key-change-in-production"
+    JWT_SECRET: str = "dev-jwt-secret-change-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     PASSWORD_RESET_CODE_TTL_MINUTES: int = 15
     PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS: int = 45
+    EMAIL_VERIFICATION_CODE_TTL_MINUTES: int = 20
+    RATE_LIMIT_REQUESTS_PER_MINUTE: int = 120
     
     # App
     APP_NAME: str = "SecureNet"

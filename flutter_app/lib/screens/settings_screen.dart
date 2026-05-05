@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_state.dart';
+import '../services/api_service.dart';
+import 'email_verification_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -20,6 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
@@ -31,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: AppTheme.spacingMd),
               _buildHeader(context),
               const SizedBox(height: AppTheme.spacingLg),
-              _buildProfileCard(context),
+              _buildProfileCard(context, appState),
               const SizedBox(height: AppTheme.spacingXl),
               _buildSectionLabel(context, 'Security preferences'),
               const SizedBox(height: AppTheme.spacingSm),
@@ -59,8 +62,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: Switch(
                   value: _notificationsEnabled,
                   onChanged: (value) => setState(() => _notificationsEnabled = value),
-                  activeTrackColor: AppTheme.primary.withOpacity(0.5),
-                  activeColor: AppTheme.primary,
+                  activeTrackColor: AppTheme.primary.withValues(alpha: 0.5),
+                  activeThumbColor: AppTheme.primary,
                 ),
               ),
               _SettingTile(
@@ -70,8 +73,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: Switch(
                   value: _dailySummaryEnabled,
                   onChanged: (value) => setState(() => _dailySummaryEnabled = value),
-                  activeTrackColor: AppTheme.primary.withOpacity(0.5),
-                  activeColor: AppTheme.primary,
+                  activeTrackColor: AppTheme.primary.withValues(alpha: 0.5),
+                  activeThumbColor: AppTheme.primary,
                 ),
               ),
               const SizedBox(height: AppTheme.spacingXl),
@@ -91,7 +94,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: AppTheme.spacingMd),
               _LogoutTile(
-                onLogout: () => Provider.of<AppState>(context, listen: false).logout(),
+                onLogout: () {
+                  ApiService().logout();
+                  Provider.of<AppState>(context, listen: false).logout();
+                },
               ),
               const SizedBox(height: AppTheme.spacingXxl),
             ],
@@ -128,7 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Container(
           padding: const EdgeInsets.all(AppTheme.spacingMd),
           decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.15),
+            color: AppTheme.primary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(AppTheme.radiusLg),
           ),
           child: const Icon(Icons.settings_rounded, size: 28, color: AppTheme.primary),
@@ -137,25 +143,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildProfileCard(BuildContext context) {
+  Widget _buildProfileCard(BuildContext context, AppState appState) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppTheme.spacingMd),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryContainer.withValues(alpha: 0.15),
+            AppTheme.surfaceVariant,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-        border: Border.all(color: AppTheme.outline.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.outline.withValues(alpha: 0.24)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.2),
+              color: AppTheme.primary.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(999),
             ),
-            child: const Icon(Icons.person_rounded, color: AppTheme.primary),
+            alignment: Alignment.center,
+            child: Text(
+              appState.initials,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
           ),
           const SizedBox(width: AppTheme.spacingMd),
           Expanded(
@@ -163,7 +184,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'SecureNet User',
+                  appState.displayName,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppTheme.onSurface,
@@ -171,34 +192,208 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Your network is being monitored',
+                  appState.email,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: AppTheme.spacingXs),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingSm,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: appState.emailVerified
+                        ? AppTheme.success.withValues(alpha: 0.16)
+                        : AppTheme.mediumRisk.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: appState.emailVerified
+                          ? AppTheme.success.withValues(alpha: 0.35)
+                          : AppTheme.mediumRisk.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Text(
+                    appState.emailVerified ? 'Email verified' : 'Email not verified',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: appState.emailVerified ? AppTheme.success : AppTheme.mediumRisk,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+                if (!appState.emailVerified) ...[
+                  const SizedBox(height: AppTheme.spacingXs),
+                  TextButton.icon(
+                    onPressed: () => _reverifyEmail(appState),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      alignment: Alignment.centerLeft,
+                    ),
+                    icon: const Icon(Icons.mark_email_read_outlined, size: 16),
+                    label: const Text('Re-verify email'),
+                  ),
+                ],
+                const SizedBox(height: AppTheme.spacingSm),
+                Text(
+                  'Phone: ${appState.phone}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppTheme.onSurfaceVariant,
+                      ),
+                ),
+                Text(
+                  'Location: ${appState.location}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: AppTheme.onSurfaceVariant,
                       ),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingSm,
-              vertical: AppTheme.spacingXs,
-            ),
-            decoration: BoxDecoration(
-              color: AppTheme.success.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            ),
-            child: Text(
-              'Protected',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppTheme.success,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              IconButton(
+                tooltip: 'Edit profile',
+                onPressed: () => _editProfile(appState),
+                icon: const Icon(Icons.edit_rounded, color: AppTheme.primary),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingSm,
+                  vertical: AppTheme.spacingXs,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.success.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                ),
+                child: Text(
+                  'Protected',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppTheme.success,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _reverifyEmail(AppState appState) async {
+    final api = ApiService();
+    final resent = await api.resendVerification(appState.email);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          resent
+              ? 'Verification code sent to ${appState.email}.'
+              : 'Could not send verification code right now.',
+        ),
+      ),
+    );
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => EmailVerificationScreen(api: api)),
+    );
+  }
+
+  Future<void> _editProfile(AppState appState) async {
+    final nameController = TextEditingController(text: appState.displayName);
+    final emailController = TextEditingController(text: appState.email);
+    final phoneController = TextEditingController(
+      text: appState.phone == 'Not set' ? '' : appState.phone,
+    );
+    final locationController = TextEditingController(
+      text: appState.location == 'Not set' ? '' : appState.location,
+    );
+
+    String? validationError;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.surfaceVariant,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          ),
+          title: const Text('Edit profile'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Full name'),
+                ),
+                const SizedBox(height: AppTheme.spacingSm),
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                ),
+                const SizedBox(height: AppTheme.spacingSm),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Phone number'),
+                ),
+                const SizedBox(height: AppTheme.spacingSm),
+                TextField(
+                  controller: locationController,
+                  decoration: const InputDecoration(labelText: 'Location'),
+                ),
+                if (validationError != null) ...[
+                  const SizedBox(height: AppTheme.spacingSm),
+                  Text(
+                    validationError!,
+                    style: const TextStyle(color: AppTheme.error),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final email = emailController.text.trim();
+                if (!_looksLikeEmail(email)) {
+                  setDialogState(() => validationError = 'Please enter a valid email.');
+                  return;
+                }
+                Navigator.of(ctx).pop(true);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved == true) {
+      final api = ApiService();
+      await api.updateProfile(fullName: nameController.text.trim());
+      await appState.updateProfile(
+        displayName: nameController.text,
+        email: emailController.text,
+        phone: phoneController.text,
+        location: locationController.text,
+      );
+    }
+  }
+
+  bool _looksLikeEmail(String value) {
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    return emailRegex.hasMatch(value);
   }
 
   Widget _buildSectionLabel(BuildContext context, String text) {
@@ -207,7 +402,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: AppTheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.8,
+            letterSpacing: 1.0,
           ),
     );
   }
@@ -359,10 +554,10 @@ class _LogoutTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+            border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -373,7 +568,7 @@ class _LogoutTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingSm),
                 decoration: BoxDecoration(
-                  color: AppTheme.error.withOpacity(0.15),
+                  color: AppTheme.error.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: const Icon(Icons.logout_rounded, color: AppTheme.error, size: 22),
@@ -400,7 +595,7 @@ class _LogoutTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: AppTheme.error.withOpacity(0.7)),
+              Icon(Icons.chevron_right_rounded, color: AppTheme.error.withValues(alpha: 0.7)),
             ],
           ),
         ),
@@ -473,10 +668,10 @@ class _SettingTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.surfaceVariant,
               borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-              border: Border.all(color: AppTheme.outline.withOpacity(0.2)),
+              border: Border.all(color: AppTheme.outline.withValues(alpha: 0.2)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -487,7 +682,7 @@ class _SettingTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(AppTheme.spacingSm),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.15),
+                    color: AppTheme.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   ),
                   child: Icon(icon, color: AppTheme.primary, size: 22),

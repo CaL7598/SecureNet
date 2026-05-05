@@ -61,6 +61,8 @@ class DeviceAnalysis(BaseModel):
     ip_address: str
     mac_address: str
     device_name: Optional[str]
+    manufacturer: Optional[str] = None
+    device_kind: Optional[str] = None
     risk_level: RiskLevel
     security_score: int = Field(..., ge=0, le=100)
     issues: List[Issue] = Field(default_factory=list)
@@ -73,4 +75,5 @@ class NetworkAnalysisResponse(BaseModel):
     total_devices: int
     critical_issues: int
     high_risk_devices: int
+    confidence_score: int = Field(..., ge=0, le=100, description="Confidence in fingerprint accuracy")
     devices: List[DeviceAnalysis]

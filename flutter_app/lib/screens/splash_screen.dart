@@ -17,7 +17,9 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _logoOpacity;
   late final Animation<double> _ringPulse;
   late final Animation<double> _textFloat;
+  late final Animation<double> _shimmer;
   bool _finished = false;
+  bool _canContinue = false;
 
   @override
   void initState() {
@@ -39,11 +41,16 @@ class _SplashScreenState extends State<SplashScreen>
     _textFloat = Tween<double>(begin: -2, end: 2).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
+    _shimmer = Tween<double>(begin: -1.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
 
-    Future<void>.delayed(const Duration(milliseconds: 2200), () {
+    Future<void>.delayed(const Duration(milliseconds: 1800), () {
       if (!mounted || _finished) return;
-      _finished = true;
-      widget.onGetStarted();
+      setState(() => _canContinue = true);
+    });
+    Future<void>.delayed(const Duration(milliseconds: 4200), () {
+      _continueIfReady();
     });
   }
 
@@ -58,55 +65,77 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
-              color: AppTheme.background,
-              child: Column(
-                children: [
-                  const Spacer(flex: 2),
-                  _buildAnimatedLogo(),
-                  const SizedBox(height: AppTheme.spacingXl),
-                  Transform.translate(
-                    offset: Offset(0, _textFloat.value),
-                    child: Text(
-                      'SecureNet',
-                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.onSurface,
-                            letterSpacing: -0.3,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _canContinue ? _continueIfReady : null,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.background,
+                      AppTheme.surfaceVariant.withValues(alpha: 0.9),
+                      AppTheme.background,
+                    ],
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Spacer(flex: 2),
+                    _buildAnimatedLogo(),
+                    const SizedBox(height: AppTheme.spacingXl),
+                    Transform.translate(
+                      offset: Offset(0, _textFloat.value),
+                      child: Text(
+                        'SecureNet',
+                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.onSurface,
+                              letterSpacing: -0.3,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacingSm),
+                    Text(
+                      'Network Security, Simplified',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: AppTheme.onSurfaceVariant,
                           ),
                     ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingSm),
-                  Text(
-                    'Network Security, Simplified',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppTheme.onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingLg),
-                  _buildLoadingRow(context),
-                  const Spacer(flex: 3),
-                  _buildAnimatedNetworkCard(context),
-                  const SizedBox(height: AppTheme.spacingMd),
-                  Text(
-                    'Initializing secure environment...',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: AppTheme.onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingXl),
-                ],
-              ),
-            );
-          },
+                    const SizedBox(height: AppTheme.spacingLg),
+                    _buildSignalStrip(context),
+                    const SizedBox(height: AppTheme.spacingMd),
+                    _buildLoadingRow(context),
+                    const Spacer(flex: 3),
+                    _buildAnimatedNetworkCard(context),
+                    const SizedBox(height: AppTheme.spacingMd),
+                    Text(
+                      _canContinue ? 'Tap anywhere to continue' : 'Initializing secure environment...',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: AppTheme.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: AppTheme.spacingXl),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
+  }
+
+  void _continueIfReady() {
+    if (!mounted || _finished) return;
+    _finished = true;
+    widget.onGetStarted();
   }
 
   Widget _buildAnimatedLogo() {
@@ -123,7 +152,7 @@ class _SplashScreenState extends State<SplashScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppTheme.primary.withOpacity(0.35),
+                  color: AppTheme.primary.withValues(alpha: 0.35),
                   width: 2,
                 ),
               ),
@@ -134,7 +163,7 @@ class _SplashScreenState extends State<SplashScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppTheme.primary.withOpacity(0.25),
+                  color: AppTheme.secondary.withValues(alpha: 0.35),
                   width: 2,
                 ),
               ),
@@ -147,7 +176,7 @@ class _SplashScreenState extends State<SplashScreen>
                 color: AppTheme.primary,
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primary.withOpacity(0.35),
+                    color: AppTheme.primary.withValues(alpha: 0.35),
                     blurRadius: 24,
                     spreadRadius: 4,
                   ),
@@ -173,9 +202,23 @@ class _SplashScreenState extends State<SplashScreen>
       constraints: const BoxConstraints(maxWidth: 400),
       padding: const EdgeInsets.all(AppTheme.spacingMd),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant.withOpacity(0.6),
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryContainer.withValues(alpha: 0.2),
+            AppTheme.surfaceVariant.withValues(alpha: 0.9),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.primary.withOpacity(0.35)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,8 +299,51 @@ class _SplashScreenState extends State<SplashScreen>
       width: 8,
       height: 8,
       decoration: BoxDecoration(
-        color: AppTheme.primary.withOpacity(opacity),
+        color: AppTheme.primary.withValues(alpha: opacity),
         shape: BoxShape.circle,
+      ),
+    );
+  }
+
+  Widget _buildSignalStrip(BuildContext context) {
+    return Container(
+      width: 220,
+      height: 22,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: AppTheme.surfaceVariant.withValues(alpha: 0.7),
+        border: Border.all(color: AppTheme.outline.withValues(alpha: 0.25)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment(-1 + _shimmer.value, 0),
+                  end: Alignment(0 + _shimmer.value, 0),
+                  colors: [
+                    AppTheme.primary.withValues(alpha: 0),
+                    AppTheme.primary.withValues(alpha: 0.32),
+                    AppTheme.secondary.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.center,
+            child: Text(
+              'SECURITY ENGINE BOOTING',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppTheme.onSurfaceVariant,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }

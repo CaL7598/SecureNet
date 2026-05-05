@@ -43,6 +43,7 @@ class NetworkAnalyzer:
             network_score = sum(d.security_score for d in device_analyses) // len(device_analyses)
         else:
             network_score = 100
+        confidence_score = self._network_confidence_score(scan_request)
         
         # Determine overall risk
         if network_score >= 90:
@@ -62,13 +63,31 @@ class NetworkAnalyzer:
             total_devices=len(device_analyses),
             critical_issues=total_critical,
             high_risk_devices=total_high_risk,
+            confidence_score=confidence_score,
             devices=device_analyses
         )
+
+    def _network_confidence_score(self, scan_request: NetworkScanRequest) -> int:
+        devices = scan_request.devices or []
+        if not devices:
+            return 95
+        points = 50
+        known_names = sum(
+            1 for d in devices if d.device_name and d.device_name.lower().strip() not in {"unknown", ""}
+        )
+        known_macs = sum(1 for d in devices if d.mac_address and d.mac_address.upper() != "UNKNOWN")
+        devices_with_ports = sum(1 for d in devices if (d.open_ports or []))
+        points += int((known_names / len(devices)) * 15)
+        points += int((known_macs / len(devices)) * 20)
+        points += int((devices_with_ports / len(devices)) * 15)
+        return max(0, min(100, points))
     
     def _analyze_device(self, device_scan) -> DeviceAnalysis:
         """Analyze a single device for vulnerabilities"""
         issues = []
         base_score = 100
+        manufacturer = self._resolve_manufacturer(device_scan)
+        device_kind = self._classify_device_kind(device_scan)
         
         # Check for insecure ports
         for port in device_scan.open_ports:
@@ -99,6 +118,28 @@ class NetworkAnalyzer:
                 base_score -= 20
             elif vuln.severity == Severity.HIGH:
                 base_score -= 15
+
+        # Detect weak/legacy protocols from service surface.
+        weak_protocol_issues = self._check_weak_protocols(device_scan)
+        issues.extend(weak_protocol_issues)
+        for item in weak_protocol_issues:
+            if item.severity == Severity.CRITICAL:
+                base_score -= 20
+            elif item.severity == Severity.HIGH:
+                base_score -= 12
+            elif item.severity == Severity.MEDIUM:
+                base_score -= 8
+
+        # Heuristic firmware hygiene signal when model/version cannot be verified.
+        firmware_issue = self._check_firmware_hygiene(
+            device_scan=device_scan,
+            manufacturer=manufacturer,
+            device_kind=device_kind,
+            known_vulnerability_count=len(vulnerability_issues),
+        )
+        if firmware_issue:
+            issues.append(firmware_issue)
+            base_score -= 8
         
         # Unknown device penalty
         if not device_scan.device_name or device_scan.device_name.lower() == "unknown":
@@ -127,10 +168,72 @@ class NetworkAnalyzer:
             ip_address=device_scan.ip_address,
             mac_address=device_scan.mac_address,
             device_name=device_scan.device_name,
+            manufacturer=manufacturer,
+            device_kind=device_kind,
             risk_level=risk_level,
             security_score=security_score,
             issues=issues
         )
+
+    def _resolve_manufacturer(self, device_scan) -> str | None:
+        """Resolve manufacturer from vendor hint, MAC prefix DB, or device name."""
+        vendor = (device_scan.vendor or "").strip()
+        if vendor and vendor.lower() != "unknown":
+            return vendor
+
+        try:
+            if device_scan.mac_address and device_scan.mac_address.upper() != "UNKNOWN":
+                mac_prefix = device_scan.mac_address.replace(":", "").upper()[:6]
+                if mac_prefix:
+                    manufacturer = self.db.query(DeviceManufacturer).filter(
+                        DeviceManufacturer.mac_prefix == mac_prefix
+                    ).first()
+                    if manufacturer:
+                        return manufacturer.name
+        except Exception:
+            pass
+
+        name_lower = (device_scan.device_name or "").lower()
+        vendor_keywords = {
+            "netgear": "Netgear",
+            "tp-link": "TP-Link",
+            "tplink": "TP-Link",
+            "linksys": "Linksys",
+            "d-link": "D-Link",
+            "asus": "ASUS",
+            "huawei": "Huawei",
+            "xiaomi": "Xiaomi",
+            "apple": "Apple",
+            "samsung": "Samsung",
+            "canon": "Canon",
+            "hp ": "HP",
+            "epson": "Epson",
+        }
+        for key, label in vendor_keywords.items():
+            if key in name_lower:
+                return label
+        return None
+
+    def _classify_device_kind(self, device_scan) -> str:
+        """Classify device kind from known ports and name hints."""
+        ports = set(device_scan.open_ports or [])
+        name = (device_scan.device_name or "").lower()
+
+        if {554, 8000}.intersection(ports) or "camera" in name or "ipcam" in name:
+            return "camera"
+        if {9100, 631, 515}.intersection(ports) or "printer" in name:
+            return "printer"
+        if {53, 67, 68, 1900}.intersection(ports) and ({80, 443}.intersection(ports) or "router" in name):
+            return "router"
+        if {445, 139, 3389}.intersection(ports):
+            return "workstation"
+        if {22, 443, 8080, 8443}.intersection(ports) and len(ports) >= 4:
+            return "server"
+        if "tv" in name or "chromecast" in name or "roku" in name:
+            return "media"
+        if "phone" in name or "android" in name or "iphone" in name:
+            return "mobile"
+        return "iot"
     
     def _check_port(self, port: int) -> Issue | None:
         """Check if a port is insecure"""
@@ -238,13 +341,25 @@ class NetworkAnalyzer:
                 recommendation="Change default username and password immediately. Use a strong, unique password."
             )
         
-        # Generic warning for common defaults
-        return Issue(
-            type=IssueType.DEFAULT_CREDENTIALS,
-            severity=Severity.HIGH,
-            description="Device may be using common default credentials",
-            recommendation="Verify and change any default usernames and passwords on this device."
+        # Heuristic-only warning: avoid blanket false positives on every device.
+        name_lower = (device_scan.device_name or "").lower()
+        is_infrastructure = (
+            "router" in name_lower
+            or "camera" in name_lower
+            or "ipcam" in name_lower
+            or any(v in vendor_lower for v in ["netgear", "tp-link", "linksys", "d-link", "asus", "huawei"])
         )
+        risky_mgmt_ports = {21, 23, 80, 443, 554, 8080}
+        has_mgmt_surface = any(port in risky_mgmt_ports for port in (device_scan.open_ports or []))
+        if is_infrastructure and has_mgmt_surface:
+            return Issue(
+                type=IssueType.DEFAULT_CREDENTIALS,
+                severity=Severity.HIGH,
+                description="Device may be using default credentials",
+                recommendation="Verify admin credentials and replace default passwords with a strong unique passphrase."
+            )
+
+        return None
     
     def _check_vulnerabilities(self, device_scan) -> list[Issue]:
         """Check for known vulnerabilities"""
@@ -269,3 +384,64 @@ class NetworkAnalyzer:
             pass
         
         return vulnerabilities
+
+    def _check_weak_protocols(self, device_scan) -> list[Issue]:
+        """Detect weak/legacy protocol exposure from open ports."""
+        issues = []
+        ports = set(device_scan.open_ports or [])
+        if 23 in ports:
+            issues.append(Issue(
+                type=IssueType.WEAK_PROTOCOL,
+                severity=Severity.CRITICAL,
+                port=23,
+                description="Legacy Telnet protocol is exposed",
+                recommendation="Disable Telnet and use SSH with key-based authentication."
+            ))
+        if 21 in ports:
+            issues.append(Issue(
+                type=IssueType.WEAK_PROTOCOL,
+                severity=Severity.HIGH,
+                port=21,
+                description="FTP is exposed without transport encryption",
+                recommendation="Disable FTP and migrate to SFTP or FTPS."
+            ))
+        if 80 in ports and 443 not in ports:
+            issues.append(Issue(
+                type=IssueType.WEAK_PROTOCOL,
+                severity=Severity.MEDIUM,
+                port=80,
+                description="Management/API traffic may be unencrypted (HTTP only)",
+                recommendation="Enable HTTPS/TLS and redirect HTTP traffic."
+            ))
+        if 139 in ports or 445 in ports:
+            issues.append(Issue(
+                type=IssueType.WEAK_PROTOCOL,
+                severity=Severity.MEDIUM,
+                description="Legacy SMB/NetBIOS services are reachable",
+                recommendation="Restrict SMB to trusted hosts and disable older SMB protocol versions."
+            ))
+        return issues
+
+    def _check_firmware_hygiene(
+        self,
+        device_scan,
+        manufacturer: str | None,
+        device_kind: str,
+        known_vulnerability_count: int,
+    ) -> Issue | None:
+        """Heuristic for outdated firmware risk when version cannot be queried directly."""
+        if known_vulnerability_count > 0:
+            return None
+
+        ports = set(device_scan.open_ports or [])
+        has_remote_admin = bool({22, 23, 80, 443, 8080, 8443}.intersection(ports))
+        name = (device_scan.device_name or "").lower()
+        model_unknown = not device_scan.device_name or name in {"unknown", "unknown device"}
+        if has_remote_admin and device_kind in {"router", "camera", "iot"} and (model_unknown or manufacturer is None):
+            return Issue(
+                type=IssueType.KNOWN_VULNERABILITY,
+                severity=Severity.MEDIUM,
+                description="Firmware version could not be verified for this internet-reachable management surface",
+                recommendation="Check vendor support page and update to the latest firmware, then disable remote administration if unnecessary."
+            )
+        return None

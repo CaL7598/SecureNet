@@ -48,12 +48,22 @@ class Issue {
         description: json['description'] as String? ?? '',
         recommendation: json['recommendation'] as String? ?? '',
       );
+
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'severity': severity,
+        if (port != null) 'port': port,
+        'description': description,
+        'recommendation': recommendation,
+      };
 }
 
 class DeviceAnalysis {
   final String ipAddress;
   final String macAddress;
   final String? deviceName;
+  final String? manufacturer;
+  final String? deviceKind;
   final String riskLevel;
   final int securityScore;
   final List<Issue> issues;
@@ -62,6 +72,8 @@ class DeviceAnalysis {
     required this.ipAddress,
     required this.macAddress,
     this.deviceName,
+    this.manufacturer,
+    this.deviceKind,
     required this.riskLevel,
     required this.securityScore,
     List<Issue>? issues,
@@ -71,6 +83,8 @@ class DeviceAnalysis {
         ipAddress: json['ip_address'] as String? ?? '',
         macAddress: json['mac_address'] as String? ?? '',
         deviceName: json['device_name'] as String?,
+        manufacturer: json['manufacturer'] as String?,
+        deviceKind: json['device_kind'] as String?,
         riskLevel: json['risk_level'] as String? ?? 'SECURE',
         securityScore: json['security_score'] as int? ?? 0,
         issues: (json['issues'] as List<dynamic>?)
@@ -78,6 +92,17 @@ class DeviceAnalysis {
                 .toList() ??
             [],
       );
+
+  Map<String, dynamic> toJson() => {
+        'ip_address': ipAddress,
+        'mac_address': macAddress,
+        if (deviceName != null) 'device_name': deviceName,
+        if (manufacturer != null) 'manufacturer': manufacturer,
+        if (deviceKind != null) 'device_kind': deviceKind,
+        'risk_level': riskLevel,
+        'security_score': securityScore,
+        'issues': issues.map((e) => e.toJson()).toList(),
+      };
 }
 
 class NetworkAnalysis {
@@ -86,6 +111,7 @@ class NetworkAnalysis {
   final int totalDevices;
   final int criticalIssues;
   final int highRiskDevices;
+  final int confidenceScore;
   final List<DeviceAnalysis> devices;
 
   NetworkAnalysis({
@@ -94,6 +120,7 @@ class NetworkAnalysis {
     required this.totalDevices,
     required this.criticalIssues,
     required this.highRiskDevices,
+    this.confidenceScore = 0,
     List<DeviceAnalysis>? devices,
   }) : devices = devices ?? [];
 
@@ -103,9 +130,44 @@ class NetworkAnalysis {
         totalDevices: json['total_devices'] as int? ?? 0,
         criticalIssues: json['critical_issues'] as int? ?? 0,
         highRiskDevices: json['high_risk_devices'] as int? ?? 0,
+        confidenceScore: json['confidence_score'] as int? ?? 0,
         devices: (json['devices'] as List<dynamic>?)
                 ?.map((e) => DeviceAnalysis.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [],
       );
+
+  Map<String, dynamic> toJson() => {
+        'network_score': networkScore,
+        'overall_risk': overallRisk,
+        'total_devices': totalDevices,
+        'critical_issues': criticalIssues,
+        'high_risk_devices': highRiskDevices,
+        'confidence_score': confidenceScore,
+        'devices': devices.map((e) => e.toJson()).toList(),
+      };
+}
+
+class ScanHistoryEntry {
+  final DateTime scannedAt;
+  final NetworkAnalysis analysis;
+
+  ScanHistoryEntry({
+    required this.scannedAt,
+    required this.analysis,
+  });
+
+  factory ScanHistoryEntry.fromJson(Map<String, dynamic> json) => ScanHistoryEntry(
+        scannedAt: DateTime.parse(
+          json['scanned_at'] as String? ?? DateTime.now().toIso8601String(),
+        ),
+        analysis: NetworkAnalysis.fromJson(
+          json['analysis'] as Map<String, dynamic>? ?? const {},
+        ),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'scanned_at': scannedAt.toIso8601String(),
+        'analysis': analysis.toJson(),
+      };
 }

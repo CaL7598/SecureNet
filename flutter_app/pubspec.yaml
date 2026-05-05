@@ -33,6 +33,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.2.0
   provider: ^6.1.2
+  shared_preferences: ^2.5.3
+  google_fonts: ^6.2.1
   # video_player: ^2.9.1  # re-enable if restoring MP4 auth background
 
 dev_dependencies:

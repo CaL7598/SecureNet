@@ -19,8 +19,9 @@ class NetworkScanner {
     8000, // common admin/dev port
   ];
 
-  static const Duration _portTimeout = Duration(milliseconds: 220);
-  static const int _maxParallelHosts = 24;
+  // Slightly longer timeout + lower parallelism improves reliability on congested Wi-Fi.
+  static const Duration _portTimeout = Duration(milliseconds: 350);
+  static const int _maxParallelHosts = 16;
 
   Future<List<DeviceScan>> scan(ScanProgressCallback onProgress) async {
     return scanWithOptions(

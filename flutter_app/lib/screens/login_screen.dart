@@ -10,7 +10,7 @@ class LoginScreen extends StatefulWidget {
     required this.onForgotPassword,
   });
 
-  final VoidCallback onLogin;
+  final Future<bool> Function(String email, String password) onLogin;
   final VoidCallback onNavigateToSignUp;
   final VoidCallback onForgotPassword;
 
@@ -41,10 +41,17 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       _loading = true;
     });
-    await Future.delayed(const Duration(milliseconds: 800));
+    final ok = await widget.onLogin(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
     if (!mounted) return;
-    setState(() => _loading = false);
-    widget.onLogin();
+    setState(() {
+      _loading = false;
+      if (!ok) {
+        _error = 'Login failed. Check your credentials or backend connection.';
+      }
+    });
   }
 
   @override
@@ -66,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: AppTheme.primary,
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primary.withOpacity(0.4),
+                      color: AppTheme.primary.withValues(alpha: 0.4),
                       blurRadius: 24,
                       spreadRadius: 0,
                     ),
@@ -90,20 +97,47 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: AppTheme.onSurfaceVariant,
                     ),
               ),
+              const SizedBox(height: AppTheme.spacingMd),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingSm,
+                  vertical: AppTheme.spacingXs,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryContainer.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Text(
+                  'Continuous network protection',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
               const SizedBox(height: AppTheme.spacingXxl),
               // Card with modern elevation
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(AppTheme.spacingLg),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceVariant.withOpacity(0.6),
+                  color: AppTheme.surfaceVariant.withValues(alpha: 0.58),
                   borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-                  border: Border.all(color: AppTheme.outline.withOpacity(0.2), width: 1),
+                  border: Border.all(color: AppTheme.outline.withValues(alpha: 0.24), width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+                      color: Colors.black.withValues(alpha: 0.28),
+                      blurRadius: 26,
+                      offset: const Offset(0, 10),
+                    ),
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      blurRadius: 28,
+                      spreadRadius: -8,
+                      offset: const Offset(0, 0),
                     ),
                   ],
                 ),
@@ -133,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: const Icon(Icons.email_outlined, size: 22, color: AppTheme.onSurfaceVariant),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
                         filled: true,
-                        fillColor: AppTheme.background.withOpacity(0.5),
+                        fillColor: AppTheme.background.withValues(alpha: 0.45),
                       ),
                       keyboardType: TextInputType.emailAddress,
                       autocorrect: false,
@@ -156,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
                         filled: true,
-                        fillColor: AppTheme.background.withOpacity(0.5),
+                        fillColor: AppTheme.background.withValues(alpha: 0.45),
                       ),
                     ),
                     if (_error != null) ...[
@@ -164,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
                         decoration: BoxDecoration(
-                          color: AppTheme.error.withOpacity(0.15),
+                          color: AppTheme.error.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                         ),
                         child: Row(
@@ -192,6 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           foregroundColor: AppTheme.onPrimary,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
                           elevation: 0,
+                          shadowColor: AppTheme.primary.withValues(alpha: 0.4),
                         ),
                         child: _loading
                             ? const SizedBox(
@@ -236,7 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.lock_outline, size: 14, color: AppTheme.onSurfaceVariant.withOpacity(0.8)),
+                  Icon(Icons.lock_outline, size: 14, color: AppTheme.onSurfaceVariant.withValues(alpha: 0.8)),
                   const SizedBox(width: AppTheme.spacingXs),
                   Text(
                     'Your credentials are encrypted and never shared.',

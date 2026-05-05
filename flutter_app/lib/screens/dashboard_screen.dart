@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/device.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import 'scan_screen.dart';
@@ -10,6 +11,9 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final analysis = appState.lastAnalysis;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
@@ -21,7 +25,7 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: AppTheme.spacingMd),
               _buildHeader(context),
               const SizedBox(height: AppTheme.spacingXl),
-              _buildRiskCard(context),
+              _buildRiskCard(context, analysis),
               const SizedBox(height: AppTheme.spacingLg),
               _buildSectionLabel(context, 'Quick actions'),
               const SizedBox(height: AppTheme.spacingSm),
@@ -29,7 +33,7 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: AppTheme.spacingLg),
               _buildSectionLabel(context, "Today's snapshot"),
               const SizedBox(height: AppTheme.spacingSm),
-              _buildSummaryRow(context),
+              _buildSummaryRow(context, appState),
               const SizedBox(height: AppTheme.spacingXxl),
             ],
           ),
@@ -42,28 +46,34 @@ class DashboardScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Welcome back',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppTheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-            ),
-            const SizedBox(height: AppTheme.spacingXs),
-            Text(
-              'Your Wi‑Fi posture',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.onSurface,
-                    letterSpacing: -0.3,
-                  ),
-            ),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome back',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: AppTheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+              const SizedBox(height: AppTheme.spacingXs),
+              Text(
+                'Your Wi‑Fi posture',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+              ),
+            ],
+          ),
         ),
+        const SizedBox(width: AppTheme.spacingSm),
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             _IconBadge(
               icon: Icons.shield_rounded,
@@ -113,26 +123,40 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRiskCard(BuildContext context) {
+  Widget _buildRiskCard(BuildContext context, NetworkAnalysis? analysis) {
+    final hasScan = analysis != null;
+    final riskColor = _riskColor(hasScan ? analysis.overallRisk : 'SECURE');
+    final scoreText = hasScan ? '${analysis.networkScore}' : '--';
+    final riskLabel = hasScan ? analysis.overallRisk : 'New';
+    final subtitle = hasScan
+        ? '${analysis.criticalIssues} critical issues · ${analysis.highRiskDevices} high-risk devices'
+        : 'No scans yet. Run your first scan to evaluate this network.';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.surfaceVariant,
-            AppTheme.surfaceVariant.withOpacity(0.7),
+            AppTheme.primaryContainer.withValues(alpha: 0.22),
+            AppTheme.surfaceVariant.withValues(alpha: 0.86),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-        border: Border.all(color: AppTheme.primary.withOpacity(0.25)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.32)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: AppTheme.primary.withValues(alpha: 0.08),
+            blurRadius: 28,
+            spreadRadius: -10,
+            offset: const Offset(0, 0),
           ),
         ],
       ),
@@ -144,21 +168,21 @@ class DashboardScreen extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppTheme.background,
-              border: Border.all(color: AppTheme.secure.withOpacity(0.5), width: 2),
+              border: Border.all(color: riskColor.withValues(alpha: 0.58), width: 2),
             ),
             alignment: Alignment.center,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '82',
+                  scoreText,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.w800,
-                        color: AppTheme.secure,
+                        color: riskColor,
                       ),
                 ),
                 Text(
-                  'Secure',
+                  riskLabel,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: AppTheme.onSurfaceVariant,
                       ),
@@ -180,21 +204,22 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppTheme.spacingXs),
                 Text(
-                  '3 devices need attention · Demo metrics',
+                  subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppTheme.onSurfaceVariant,
                       ),
                 ),
                 const SizedBox(height: AppTheme.spacingSm),
-                Wrap(
-                  spacing: AppTheme.spacingMd,
-                  runSpacing: AppTheme.spacingXs,
-                  children: [
-                    _riskChip(context, AppTheme.secure, 'Secure'),
-                    _riskChip(context, AppTheme.mediumRisk, 'Medium'),
-                    _riskChip(context, AppTheme.critical, 'High'),
-                  ],
-                ),
+                if (hasScan)
+                  Wrap(
+                    spacing: AppTheme.spacingMd,
+                    runSpacing: AppTheme.spacingXs,
+                    children: [
+                      _riskChip(context, AppTheme.secure, 'Secure'),
+                      _riskChip(context, AppTheme.mediumRisk, 'Medium'),
+                      _riskChip(context, AppTheme.critical, 'Critical'),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -229,7 +254,7 @@ class DashboardScreen extends StatelessWidget {
       style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: AppTheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.8,
+            letterSpacing: 1.0,
           ),
     );
   }
@@ -268,27 +293,52 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryRow(BuildContext context) {
+  Widget _buildSummaryRow(BuildContext context, AppState appState) {
+    final analysis = appState.lastAnalysis;
+    final lastDevices = analysis?.totalDevices ?? 0;
+    final openAlerts = hasLastScan(analysis)
+        ? analysis!.criticalIssues + analysis.highRiskDevices
+        : 0;
+
     return Row(
       children: [
         Expanded(
           child: _SummaryCard(
             icon: Icons.devices_other_rounded,
-            label: 'Active devices',
-            value: '7',
+            label: 'Scans run',
+            value: '${appState.scanCount}',
           ),
         ),
         const SizedBox(width: AppTheme.spacingMd),
         Expanded(
           child: _SummaryCard(
             icon: Icons.warning_amber_rounded,
-            label: 'Open alerts',
-            value: '3',
-            valueColor: AppTheme.warning,
+            label: hasLastScan(analysis) ? 'Open alerts' : 'Last devices',
+            value: hasLastScan(analysis) ? '$openAlerts' : '$lastDevices',
+            valueColor: hasLastScan(analysis) ? AppTheme.warning : AppTheme.onSurface,
           ),
         ),
       ],
     );
+  }
+
+  bool hasLastScan(NetworkAnalysis? analysis) => analysis != null;
+
+  Color _riskColor(String risk) {
+    switch (risk.toUpperCase()) {
+      case 'SECURE':
+        return AppTheme.secure;
+      case 'LOW':
+        return AppTheme.lowRisk;
+      case 'MEDIUM':
+        return AppTheme.mediumRisk;
+      case 'HIGH':
+        return AppTheme.highRisk;
+      case 'CRITICAL':
+        return AppTheme.critical;
+      default:
+        return AppTheme.onSurfaceVariant;
+    }
   }
 }
 
@@ -310,7 +360,7 @@ class _IconBadge extends StatelessWidget {
     return Container(
       padding: padding ?? const EdgeInsets.all(AppTheme.spacingSm),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       ),
       child: Icon(icon, color: color, size: size),
@@ -339,7 +389,7 @@ class _IconButtonBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppTheme.spacingMd),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
+            color: color.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           ),
           child: Icon(icon, color: color, size: 22),
@@ -376,12 +426,12 @@ class _ActionCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            border: Border.all(color: AppTheme.outline.withOpacity(0.2)),
+            border: Border.all(color: AppTheme.outline.withValues(alpha: 0.22)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withValues(alpha: 0.14),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -432,7 +482,7 @@ class _SummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceVariant,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.outline.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.outline.withValues(alpha: 0.22)),
       ),
       child: Row(
         children: [

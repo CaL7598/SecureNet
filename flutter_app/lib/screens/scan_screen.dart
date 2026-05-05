@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../models/device.dart';
 import '../services/api_service.dart';
 import '../services/network_scanner.dart';
+import '../providers/app_state.dart';
 import 'scan_results_screen.dart';
 
 class ScanScreen extends StatefulWidget {
@@ -20,10 +22,17 @@ class _ScanScreenState extends State<ScanScreen> {
   bool _cancelRequested = false;
   int _progress = 0;
   String _message = '';
-  bool _demoMode = !kReleaseMode;
+  bool _demoMode = false;
   bool _deepScan = false;
 
   Future<void> _startScan() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    if (!appState.scanConsentAccepted) {
+      final accepted = await _showConsentDialog();
+      if (accepted != true) return;
+      await appState.acceptScanConsent();
+    }
+
     setState(() {
       _isScanning = true;
       _cancelRequested = false;
@@ -127,6 +136,7 @@ class _ScanScreenState extends State<ScanScreen> {
     });
 
     if (analysis != null) {
+      Provider.of<AppState>(context, listen: false).recordScan(analysis);
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => ScanResultsScreen(analysis: analysis),
@@ -140,6 +150,31 @@ class _ScanScreenState extends State<ScanScreen> {
         ),
       );
     }
+  }
+
+  Future<bool?> _showConsentDialog() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Before you scan'),
+        content: const Text(
+          'Only scan networks and devices you own or are explicitly authorized to test. '
+          'SecureNet provides security guidance but does not guarantee complete protection. '
+          'By continuing, you agree to responsible use and the app terms/privacy notices.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('I Agree'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

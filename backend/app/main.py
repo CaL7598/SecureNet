@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.endpoints import analyze, auth, devices, vulnerabilities
 from app.config import settings
+from app.ops import INCIDENT_LOG, OpsMiddleware, RateLimitMiddleware
 
 
 @asynccontextmanager
@@ -37,6 +38,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(OpsMiddleware)
 
 # Include routers
 app.include_router(analyze.router, prefix="/api/v1", tags=["Analysis"])
@@ -59,3 +62,8 @@ async def root():
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "SecureNet API"}
+
+
+@app.get("/api/v1/ops/incidents")
+async def recent_incidents():
+    return {"count": len(INCIDENT_LOG), "items": list(INCIDENT_LOG)}

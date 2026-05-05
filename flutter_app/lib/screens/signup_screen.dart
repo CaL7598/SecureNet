@@ -5,7 +5,7 @@ import '../widgets/auth_video_background.dart';
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key, required this.onSignUp, required this.onNavigateToLogin});
 
-  final VoidCallback onSignUp;
+  final Future<bool> Function(String email, String password, String? fullName) onSignUp;
   final VoidCallback onNavigateToLogin;
 
   @override
@@ -55,10 +55,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
       _loading = true;
     });
-    await Future.delayed(const Duration(milliseconds: 900));
+    final ok = await widget.onSignUp(
+      _emailController.text.trim(),
+      _passwordController.text,
+      _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
+    );
     if (!mounted) return;
+    if (!ok) {
+      setState(() {
+        _loading = false;
+        _error = 'Sign up failed. Please verify backend and try again.';
+      });
+      return;
+    }
     setState(() => _loading = false);
-    widget.onSignUp();
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
