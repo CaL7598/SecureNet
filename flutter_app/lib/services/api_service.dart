@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/device.dart';
 import 'api_base_url.dart';
@@ -13,7 +14,7 @@ class ApiService {
   static bool _refreshInFlight = false;
   String? _lastAuthError;
   String? get lastAuthError => _lastAuthError;
-  static const Duration _authTimeout = Duration(seconds: 40);
+  static const Duration _authTimeout = Duration(seconds: 75);
 
   void setBearerToken(String? token) {
     _globalBearerToken = token;
@@ -50,6 +51,42 @@ class ApiService {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<void> _wakeBackend() async {
+    try {
+      await http
+          .get(Uri.parse('$_baseUrl/api/v1/health'))
+          .timeout(const Duration(seconds: 30));
+    } catch (_) {
+      // Best effort wake-up; auth request will provide final result.
+    }
+  }
+
+  Future<http.Response> _retryAuthPost(
+    String path,
+    Map<String, dynamic> payload,
+  ) async {
+    const attempts = 2;
+    Object? lastError;
+    for (var i = 0; i < attempts; i++) {
+      try {
+        return await http
+            .post(
+              Uri.parse('$_baseUrl$path'),
+              headers: _headers(),
+              body: jsonEncode(payload),
+            )
+            .timeout(_authTimeout);
+      } catch (e) {
+        lastError = e;
+        if (i < attempts - 1) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          continue;
+        }
+      }
+    }
+    throw lastError ?? Exception('Unknown auth request failure');
   }
 
   Future<NetworkAnalysis?> analyzeNetwork(List<DeviceScan> devices) async {
@@ -128,17 +165,12 @@ class ApiService {
     String? fullName,
   }) async {
     try {
-      final res = await http
-          .post(
-            Uri.parse('$_baseUrl/api/v1/auth/register'),
-            headers: _headers(),
-            body: jsonEncode({
-              'email': email,
-              'password': password,
-              'full_name': fullName,
-            }),
-          )
-          .timeout(_authTimeout);
+      await _wakeBackend();
+      final res = await _retryAuthPost('/api/v1/auth/register', {
+        'email': email,
+        'password': password,
+        'full_name': fullName,
+      });
       if (res.statusCode < 200 || res.statusCode >= 300) {
         _lastAuthError = _extractErrorMessage(res);
         return null;
@@ -148,6 +180,10 @@ class ApiService {
     } on TimeoutException {
       _lastAuthError =
           'Server is waking up. Please wait a moment and try again.';
+      return null;
+    } on SocketException {
+      _lastAuthError =
+          'Network unavailable on this phone. Check data/Wi-Fi, then retry.';
       return null;
     } catch (_) {
       _lastAuthError = 'Unable to reach backend. Check network and API URL.';
@@ -160,13 +196,11 @@ class ApiService {
     required String password,
   }) async {
     try {
-      final res = await http
-          .post(
-            Uri.parse('$_baseUrl/api/v1/auth/login'),
-            headers: _headers(),
-            body: jsonEncode({'email': email, 'password': password}),
-          )
-          .timeout(_authTimeout);
+      await _wakeBackend();
+      final res = await _retryAuthPost('/api/v1/auth/login', {
+        'email': email,
+        'password': password,
+      });
       if (res.statusCode < 200 || res.statusCode >= 300) {
         _lastAuthError = _extractErrorMessage(res);
         return null;
@@ -176,6 +210,10 @@ class ApiService {
     } on TimeoutException {
       _lastAuthError =
           'Server is waking up. Please wait a moment and try again.';
+      return null;
+    } on SocketException {
+      _lastAuthError =
+          'Network unavailable on this phone. Check data/Wi-Fi, then retry.';
       return null;
     } catch (_) {
       _lastAuthError = 'Unable to reach backend. Check network and API URL.';
