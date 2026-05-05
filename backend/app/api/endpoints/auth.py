@@ -85,8 +85,9 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-# Use PBKDF2 to avoid runtime bcrypt backend incompatibilities on some deploy targets.
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+# Keep backward compatibility for previously stored bcrypt hashes while
+# defaulting new hashes to PBKDF2 for deploy stability.
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
 
 def _create_access_token(user: User) -> str:
