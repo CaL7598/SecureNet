@@ -7,7 +7,6 @@ import 'screens/login_screen.dart';
 import 'screens/reset_password_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/main_screen.dart';
-import 'screens/email_verification_screen.dart';
 import 'services/api_service.dart';
 
 void main() {
@@ -97,7 +96,7 @@ class SecureNetApp extends StatelessWidget {
                           email: (user['email'] as String?) ?? email,
                           displayName: user['full_name'] as String?,
                           emailVerified: user['is_email_verified'] == true,
-                          promptEmailVerification: true,
+                          promptEmailVerification: false,
                         );
                         await state.syncProfileAndHistoryFromBackend(_api);
                         return null;
@@ -108,9 +107,6 @@ class SecureNetApp extends StatelessWidget {
                 );
               },
             );
-          }
-          if (state.promptEmailVerification && !state.emailVerified) {
-            return EmailVerificationScreen(api: _api);
           }
           return _AuthedHome(api: _api);
         },
