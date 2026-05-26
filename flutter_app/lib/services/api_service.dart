@@ -334,6 +334,18 @@ class ApiService {
     }
   }
 
+  Future<bool> resendWelcomeEmail() async {
+    final res = await _authorizedRequest(
+      () => http
+          .post(
+            Uri.parse('$_baseUrl/api/v1/auth/resend-welcome'),
+            headers: _headers(),
+          )
+          .timeout(const Duration(seconds: 20)),
+    );
+    return res != null && res.statusCode >= 200 && res.statusCode < 300;
+  }
+
   Future<bool> resendVerification(String email) async {
     try {
       final res = await http

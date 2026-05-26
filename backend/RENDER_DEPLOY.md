@@ -102,7 +102,12 @@ Verification and password-reset codes are sent over **SMTP** when enabled.
 
 SendGrid SMTP defaults apply automatically (`smtp.sendgrid.net`, user `apikey`). The backend prefers the **SendGrid HTTP API** (port 443), which works reliably on Render where SMTP ports may be blocked.
 
-After deploy, test **Resend verification** or **Forgot password** from the app; check Render **Logs** if delivery fails (unverified `EMAIL_FROM` is the usual cause).
+After deploy:
+
+1. Open `https://<your-service>.onrender.com/api/v1/ops/email-status` — confirm `sendgrid_configured: true` and `from_address` matches SendGrid.
+2. In SendGrid → **Settings → Mail Settings → Sandbox Mode**, turn **Sandbox OFF** (if on, API accepts mail but nothing is delivered).
+3. Test signup or **Settings → Resend welcome email** in the app; check inbox **and spam**.
+4. Check SendGrid **Activity** feed for bounces/blocks; check Render **Logs** for `[EmailDelivery]` lines.
 
 ## Notes
 

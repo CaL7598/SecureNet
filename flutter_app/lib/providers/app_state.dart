@@ -35,6 +35,7 @@ class AppState extends ChangeNotifier {
   bool _pendingWelcomeEmailNotice = false;
   bool get pendingWelcomeEmailNotice => _pendingWelcomeEmailNotice;
   WelcomeEmailStatus _welcomeEmailStatus = WelcomeEmailStatus.none;
+  String? _welcomeEmailDetail;
 
   String _displayName = 'SecureNet User';
   String get displayName => _displayName;
@@ -67,6 +68,7 @@ class AppState extends ChangeNotifier {
     bool promptEmailVerification = false,
     bool showWelcomeEmailNotice = false,
     WelcomeEmailStatus welcomeEmailStatus = WelcomeEmailStatus.none,
+    String? welcomeEmailDetail,
   }) {
     _accessToken = token;
     _refreshToken = refreshToken;
@@ -79,6 +81,7 @@ class AppState extends ChangeNotifier {
     if (showWelcomeEmailNotice || welcomeEmailStatus != WelcomeEmailStatus.none) {
       _pendingWelcomeEmailNotice = true;
       _welcomeEmailStatus = welcomeEmailStatus;
+      _welcomeEmailDetail = welcomeEmailDetail;
     }
     _isAuthenticated = true;
     _persistAuth();
@@ -103,6 +106,7 @@ class AppState extends ChangeNotifier {
     _promptEmailVerification = false;
     _pendingWelcomeEmailNotice = false;
     _welcomeEmailStatus = WelcomeEmailStatus.none;
+    _welcomeEmailDetail = null;
     _scanHistory = [];
     _scanConsentAccepted = false;
     _persistScanHistory();
@@ -116,16 +120,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  WelcomeEmailStatus consumeWelcomeEmailStatus() {
-    if (!_pendingWelcomeEmailNotice) return WelcomeEmailStatus.none;
+  ({WelcomeEmailStatus status, String? detail})? consumeWelcomeEmailNotice() {
+    if (!_pendingWelcomeEmailNotice) return null;
     _pendingWelcomeEmailNotice = false;
-    final status = _welcomeEmailStatus;
+    final result = (status: _welcomeEmailStatus, detail: _welcomeEmailDetail);
     _welcomeEmailStatus = WelcomeEmailStatus.none;
-    return status;
-  }
-
-  bool consumeWelcomeEmailNotice() {
-    return consumeWelcomeEmailStatus() == WelcomeEmailStatus.sent;
+    _welcomeEmailDetail = null;
+    return result;
   }
 
   Future<void> setEmailVerified(bool value) async {

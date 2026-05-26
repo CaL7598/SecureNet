@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import analyze, auth, devices, vulnerabilities
 from app.config import settings
 from app.ops import INCIDENT_LOG, OpsMiddleware, RateLimitMiddleware
+from app.services.email_service import email_delivery_status
 
 
 @asynccontextmanager
@@ -18,6 +19,13 @@ async def lifespan(app: FastAPI):
     from app.database import Base, engine
 
     Base.metadata.create_all(bind=engine)
+    status = email_delivery_status()
+    print(
+        "[Startup] email delivery:",
+        f"enabled={status['delivery_enabled']}",
+        f"sendgrid={'yes' if status['sendgrid_configured'] else 'no'}",
+        f"from={status['from_address']}",
+    )
     yield
 
 
@@ -67,3 +75,9 @@ async def health_check():
 @app.get("/api/v1/ops/incidents")
 async def recent_incidents():
     return {"count": len(INCIDENT_LOG), "items": list(INCIDENT_LOG)}
+
+
+@app.get("/api/v1/ops/email-status")
+async def email_status():
+    """Public diagnostics: whether outbound email is configured (no secrets)."""
+    return email_delivery_status()

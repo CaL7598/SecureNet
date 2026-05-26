@@ -19,6 +19,7 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.services.email_service import (
+    LAST_EMAIL_RESULT,
     send_email_verification_code,
     send_password_reset_code,
     send_registration_welcome_email,
@@ -72,6 +73,7 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
     user: ProfileOut
     welcome_email_sent: bool | None = None
+    welcome_email_error: str | None = None
 
 
 class ProfileUpdateIn(BaseModel):
@@ -167,6 +169,19 @@ def _send_verification_code(email: str, code: str) -> None:
     send_email_verification_code(email=email, code=code)
 
 
+def _send_welcome_with_detail(
+    *,
+    email: str,
+    code: str,
+    full_name: str | None,
+) -> tuple[bool, str | None]:
+    sent = send_registration_welcome_email(email=email, code=code, full_name=full_name)
+    if sent:
+        return True, None
+    detail = LAST_EMAIL_RESULT.get("detail")
+    return False, detail if isinstance(detail, str) else "Email delivery failed."
+
+
 @router.post("/auth/register", response_model=TokenOut)
 async def register(
     payload: RegisterIn,
@@ -200,7 +215,7 @@ async def register(
         )
     )
     db.commit()
-    welcome_sent = send_registration_welcome_email(
+    welcome_sent, welcome_error = _send_welcome_with_detail(
         email=email,
         code=code,
         full_name=user.full_name,
@@ -211,7 +226,38 @@ async def register(
         refresh_token=_issue_refresh_token(user, db),
         user=_to_profile(user),
         welcome_email_sent=welcome_sent,
+        welcome_email_error=welcome_error,
     )
+
+
+@router.post("/auth/resend-welcome", response_model=ApiMessageOut)
+async def resend_welcome(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Resend welcome email to the logged-in user (e.g. if first delivery failed)."""
+    now = datetime.now(timezone.utc)
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    db.add(
+        EmailVerificationToken(
+            user_id=user.id,
+            code_hash=_hash_code(code),
+            expires_at=now + timedelta(minutes=settings.EMAIL_VERIFICATION_CODE_TTL_MINUTES),
+            used_at=None,
+        )
+    )
+    db.commit()
+    sent, error = _send_welcome_with_detail(
+        email=user.email,
+        code=code,
+        full_name=user.full_name,
+    )
+    if not sent:
+        raise HTTPException(
+            status_code=503,
+            detail=error or "Could not send welcome email. Try again later.",
+        )
+    return ApiMessageOut(message="Welcome email sent. Check your inbox and spam folder.")
 
 
 @router.post("/auth/login", response_model=TokenOut)

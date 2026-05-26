@@ -24,3 +24,9 @@ services:
         sync: false
       - key: DEBUG
         value: "false"
+      - key: EMAIL_DELIVERY_ENABLED
+        value: "true"
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

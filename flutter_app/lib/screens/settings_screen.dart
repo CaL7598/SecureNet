@@ -231,6 +231,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: const Icon(Icons.mark_email_read_outlined, size: 16),
                     label: const Text('Verify email (optional)'),
                   ),
+                const SizedBox(height: AppTheme.spacingXs),
+                TextButton.icon(
+                  onPressed: () => _resendWelcomeEmail(appState),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    alignment: Alignment.centerLeft,
+                  ),
+                  icon: const Icon(Icons.mail_outline_rounded, size: 16),
+                  label: const Text('Resend welcome email'),
+                ),
                 const SizedBox(height: AppTheme.spacingSm),
                 Text(
                   'Phone: ${appState.phone}',
@@ -275,6 +287,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _resendWelcomeEmail(AppState appState) async {
+    final api = ApiService()..setBearerToken(appState.accessToken);
+    final sent = await api.resendWelcomeEmail();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          sent
+              ? 'Welcome email sent to ${appState.email}. Check inbox and spam.'
+              : 'Could not send welcome email. Confirm SendGrid is configured on the server.',
+        ),
       ),
     );
   }

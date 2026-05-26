@@ -19,6 +19,13 @@ class Settings(BaseSettings):
         if isinstance(v, str) and v.startswith("postgres://"):
             return "postgresql://" + v[len("postgres://"):]
         return v
+
+    @field_validator("SENDGRID_API_KEY", "EMAIL_FROM", "SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", mode="before")
+    @classmethod
+    def strip_strings(cls, v: object) -> object:
+        if isinstance(v, str):
+            return v.strip()
+        return v
     
     # API
     API_V1_PREFIX: str = "/api/v1"

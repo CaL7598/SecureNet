@@ -91,6 +91,7 @@ class SecureNetApp extends StatelessWidget {
                         _api.setBearerToken(token);
                         _api.setRefreshToken(refreshToken);
                         final welcomeSent = session['welcome_email_sent'] as bool?;
+                        final welcomeError = session['welcome_email_error'] as String?;
                         state.loginWithSession(
                           token: token,
                           refreshToken: refreshToken,
@@ -100,7 +101,10 @@ class SecureNetApp extends StatelessWidget {
                           promptEmailVerification: false,
                           welcomeEmailStatus: welcomeSent == true
                               ? WelcomeEmailStatus.sent
-                              : WelcomeEmailStatus.failed,
+                              : welcomeSent == false
+                                  ? WelcomeEmailStatus.failed
+                                  : WelcomeEmailStatus.none,
+                          welcomeEmailDetail: welcomeError,
                         );
                         await state.syncProfileAndHistoryFromBackend(_api);
                         return null;
@@ -141,12 +145,15 @@ class _AuthedHomeState extends State<_AuthedHome> {
 
   void _maybeShowWelcomeEmailNotice() {
     final state = context.read<AppState>();
-    final status = state.consumeWelcomeEmailStatus();
-    if (status == WelcomeEmailStatus.none) return;
-
+    final notice = state.consumeWelcomeEmailNotice();
+    if (notice == null || notice.status == WelcomeEmailStatus.none) return;
+    final status = notice.status;
+    final detail = notice.detail;
     final message = status == WelcomeEmailStatus.sent
-        ? 'Welcome! We sent an email to ${state.email} with your account details.'
-        : 'Account created, but we could not send the welcome email yet. Check spam or try again later.';
+        ? 'Welcome! We sent an email to ${state.email}. Check your inbox and spam folder.'
+        : detail != null && detail.isNotEmpty
+            ? 'Account created, but email failed: $detail'
+            : 'Account created, but we could not send the welcome email. Use Settings → Resend welcome email.';
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
