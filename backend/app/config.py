@@ -20,7 +20,15 @@ class Settings(BaseSettings):
             return "postgresql://" + v[len("postgres://"):]
         return v
 
-    @field_validator("SENDGRID_API_KEY", "EMAIL_FROM", "SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", mode="before")
+    @field_validator(
+        "SENDGRID_API_KEY",
+        "EMAIL_FROM",
+        "SMTP_HOST",
+        "SMTP_USERNAME",
+        "SMTP_PASSWORD",
+        "PUBLIC_API_BASE_URL",
+        mode="before",
+    )
     @classmethod
     def strip_strings(cls, v: object) -> object:
         if isinstance(v, str):
@@ -51,6 +59,8 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_USE_TLS: bool = True
     EMAIL_FROM: str = "noreply@securenet.app"
+    # Public URL for email images (Render service URL)
+    PUBLIC_API_BASE_URL: str = "https://securenet-api-chqb.onrender.com"
     
     # App
     APP_NAME: str = "SecureNet"

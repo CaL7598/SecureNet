@@ -12,6 +12,12 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.services.email_templates import (
+    build_verification_html,
+    build_verification_plain,
+    build_welcome_html,
+    build_welcome_plain,
+)
 
 LAST_EMAIL_RESULT: dict[str, Any] = {
     "ok": None,
@@ -232,94 +238,35 @@ def send_password_reset_code(email: str, code: str) -> bool:
 
 def send_registration_welcome_email(
     email: str,
-    code: str,
     *,
     full_name: str | None = None,
 ) -> bool:
-    """Welcome new users; verification is optional and done in app settings."""
-    display_name = full_name.strip() if full_name and full_name.strip() else None
-    greeting = f"Hi {display_name}," if display_name else "Hi,"
-    body = (
-        f"{greeting}\n\n"
-        "Welcome to SecureNet. Your account is now active, and you can start scanning networks immediately.\n\n"
-        "Verification is optional right now.\n"
-        "If you choose to verify later, open Settings in the app and use this code:\n"
-        f"{code}\n"
-        f"This code expires in {settings.EMAIL_VERIFICATION_CODE_TTL_MINUTES} minutes.\n\n"
-        "If you did not create this account, you can ignore this email.\n\n"
-        "Best regards,\n"
-        "SecureNet Team"
-    )
-    html_body = f"""\
-<!doctype html>
-<html>
-  <body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;color:#111827;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
-            <tr>
-              <td style="padding:24px;border-bottom:1px solid #e5e7eb;background:#0f172a;color:#ffffff;">
-                <h1 style="margin:0;font-size:20px;line-height:1.3;">Welcome to SecureNet</h1>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:24px;">
-                <p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;">{greeting}</p>
-                <p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;">
-                  Your account is now active, and you can start scanning networks immediately.
-                </p>
-                <p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;">
-                  Verification is optional right now. If you choose to verify later, open <strong>Settings</strong> in the app and enter this code:
-                </p>
-                <div style="margin:0 0 14px 0;padding:12px;border:1px dashed #94a3b8;border-radius:10px;background:#f8fafc;text-align:center;">
-                  <span style="font-size:28px;letter-spacing:4px;font-weight:700;color:#0f172a;">{code}</span>
-                </div>
-                <p style="margin:0 0 14px 0;font-size:14px;line-height:1.6;color:#4b5563;">
-                  This code expires in {settings.EMAIL_VERIFICATION_CODE_TTL_MINUTES} minutes.
-                </p>
-                <p style="margin:0;font-size:13px;line-height:1.6;color:#6b7280;">
-                  If you did not create this account, you can ignore this email.
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:16px 24px;border-top:1px solid #e5e7eb;background:#f9fafb;">
-                <p style="margin:0;font-size:12px;line-height:1.5;color:#6b7280;">SecureNet Team</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>
-"""
+    """Welcome email only — no verification code (use send_email_verification_code for that)."""
+    subject, body = build_welcome_plain(full_name=full_name)
+    html_body = build_welcome_html(full_name=full_name)
     if settings.DEBUG:
-        print(f"[WelcomeEmail] code for {email}: {code}")
+        print(f"[WelcomeEmail] sending welcome to {email}")
     sent = _deliver_email(
         to_email=email,
-        subject="Welcome to SecureNet",
+        subject=subject,
         body=body,
         html_body=html_body,
     )
     if not sent:
-        print(f"[WelcomeEmail] fallback log for {_masked(email)}: code={code}")
+        print(f"[WelcomeEmail] delivery failed for {_masked(email)}")
     return sent
 
 
 def send_email_verification_code(email: str, code: str) -> bool:
-    body = (
-        "You requested an email verification code for SecureNet.\n\n"
-        f"Your code is: {code}\n\n"
-        f"This code expires in {settings.EMAIL_VERIFICATION_CODE_TTL_MINUTES} minutes."
-    )
+    subject, body = build_verification_plain(code=code)
+    html_body = build_verification_html(code=code)
     if settings.DEBUG:
         print(f"[EmailVerification] code for {email}: {code}")
     sent = _deliver_email(
         to_email=email,
-        subject="SecureNet email verification code",
+        subject=subject,
         body=body,
+        html_body=html_body,
     )
     if not sent:
         print(f"[EmailVerification] fallback log for {_masked(email)}: code={code}")

@@ -299,7 +299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SnackBar(
         content: Text(
           sent
-              ? 'Welcome email sent to ${appState.email}. Check inbox and spam.'
+              ? 'Welcome email sent to ${appState.email} (not a verification code).'
               : 'Could not send welcome email. Confirm SendGrid is configured on the server.',
         ),
       ),
@@ -314,8 +314,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SnackBar(
         content: Text(
           resent
-              ? 'Verification email sent to ${appState.email}.'
-              : 'Could not send email right now.',
+              ? 'Verification code sent to ${appState.email}. Check inbox and spam.'
+              : 'Could not send verification email right now.',
         ),
       ),
     );

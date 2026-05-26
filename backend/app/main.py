@@ -2,9 +2,11 @@
 SecureNet Backend - FastAPI Application Entry Point
 """
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.endpoints import analyze, auth, devices, vulnerabilities
 from app.config import settings
@@ -48,6 +50,10 @@ app.add_middleware(
 )
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(OpsMiddleware)
+
+_static_dir = Path(__file__).resolve().parent.parent / "static"
+if _static_dir.is_dir():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
 # Include routers
 app.include_router(analyze.router, prefix="/api/v1", tags=["Analysis"])

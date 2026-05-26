@@ -172,10 +172,9 @@ def _send_verification_code(email: str, code: str) -> None:
 def _send_welcome_with_detail(
     *,
     email: str,
-    code: str,
     full_name: str | None,
 ) -> tuple[bool, str | None]:
-    sent = send_registration_welcome_email(email=email, code=code, full_name=full_name)
+    sent = send_registration_welcome_email(email=email, full_name=full_name)
     if sent:
         return True, None
     detail = LAST_EMAIL_RESULT.get("detail")
@@ -217,7 +216,6 @@ async def register(
     db.commit()
     welcome_sent, welcome_error = _send_welcome_with_detail(
         email=email,
-        code=code,
         full_name=user.full_name,
     )
 
@@ -231,25 +229,10 @@ async def register(
 
 
 @router.post("/auth/resend-welcome", response_model=ApiMessageOut)
-async def resend_welcome(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    """Resend welcome email to the logged-in user (e.g. if first delivery failed)."""
-    now = datetime.now(timezone.utc)
-    code = f"{secrets.randbelow(1_000_000):06d}"
-    db.add(
-        EmailVerificationToken(
-            user_id=user.id,
-            code_hash=_hash_code(code),
-            expires_at=now + timedelta(minutes=settings.EMAIL_VERIFICATION_CODE_TTL_MINUTES),
-            used_at=None,
-        )
-    )
-    db.commit()
+async def resend_welcome(user: User = Depends(get_current_user)):
+    """Resend welcome email (no verification code — use resend-verification for that)."""
     sent, error = _send_welcome_with_detail(
         email=user.email,
-        code=code,
         full_name=user.full_name,
     )
     if not sent:
@@ -257,7 +240,9 @@ async def resend_welcome(
             status_code=503,
             detail=error or "Could not send welcome email. Try again later.",
         )
-    return ApiMessageOut(message="Welcome email sent. Check your inbox and spam folder.")
+    return ApiMessageOut(
+        message="Welcome email sent. This is not a verification code — check inbox and spam."
+    )
 
 
 @router.post("/auth/login", response_model=TokenOut)
