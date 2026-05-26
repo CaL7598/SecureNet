@@ -1,10 +1,13 @@
 """
 Email delivery service hooks.
 
-Sends verification and reset codes over SMTP when configured.
+Prefers SendGrid HTTP API (works on Render where SMTP ports are often blocked).
+Falls back to SMTP when configured.
 """
 import smtplib
 from email.message import EmailMessage
+
+import httpx
 
 from app.config import settings
 
@@ -13,15 +16,57 @@ def _masked(email: str) -> str:
     return email[:2] + "***" + email[email.find("@") :] if "@" in email else "***"
 
 
-def _deliver_email(
+def _send_via_sendgrid_api(
     *,
     to_email: str,
     subject: str,
     body: str,
     html_body: str | None = None,
 ) -> bool:
-    if not settings.EMAIL_DELIVERY_ENABLED:
+    if not settings.SENDGRID_API_KEY:
         return False
+
+    content = [{"type": "text/plain", "value": body}]
+    if html_body:
+        content.append({"type": "text/html", "value": html_body})
+
+    payload = {
+        "personalizations": [{"to": [{"email": to_email}]}],
+        "from": {"email": settings.EMAIL_FROM, "name": settings.APP_NAME},
+        "subject": subject,
+        "content": content,
+    }
+
+    try:
+        response = httpx.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={
+                "Authorization": f"Bearer {settings.SENDGRID_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=20.0,
+        )
+        if response.status_code >= 400:
+            print(
+                f"[EmailDelivery] SendGrid API failed for {_masked(to_email)}: "
+                f"{response.status_code} {response.text[:300]}"
+            )
+            return False
+        print(f"[EmailDelivery] SendGrid API sent to {_masked(to_email)}")
+        return True
+    except Exception as exc:  # noqa: BLE001
+        print(f"[EmailDelivery] SendGrid API error for {_masked(to_email)}: {exc}")
+        return False
+
+
+def _send_via_smtp(
+    *,
+    to_email: str,
+    subject: str,
+    body: str,
+    html_body: str | None = None,
+) -> bool:
     if not settings.SMTP_HOST or not settings.SMTP_USERNAME or not settings.SMTP_PASSWORD:
         return False
 
@@ -41,13 +86,42 @@ def _deliver_email(
                 server.ehlo()
             server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
             server.send_message(msg)
+        print(f"[EmailDelivery] SMTP sent to {_masked(to_email)}")
         return True
     except Exception as exc:  # noqa: BLE001
-        print(f"[EmailDelivery] failed for {_masked(to_email)}: {exc}")
+        print(f"[EmailDelivery] SMTP failed for {_masked(to_email)}: {exc}")
         return False
 
 
-def send_password_reset_code(email: str, code: str) -> None:
+def _deliver_email(
+    *,
+    to_email: str,
+    subject: str,
+    body: str,
+    html_body: str | None = None,
+) -> bool:
+    if not settings.EMAIL_DELIVERY_ENABLED:
+        print(f"[EmailDelivery] disabled; skipped {_masked(to_email)}")
+        return False
+
+    if settings.SENDGRID_API_KEY:
+        if _send_via_sendgrid_api(
+            to_email=to_email,
+            subject=subject,
+            body=body,
+            html_body=html_body,
+        ):
+            return True
+
+    return _send_via_smtp(
+        to_email=to_email,
+        subject=subject,
+        body=body,
+        html_body=html_body,
+    )
+
+
+def send_password_reset_code(email: str, code: str) -> bool:
     body = (
         "You requested a password reset for SecureNet.\n\n"
         f"Your verification code is: {code}\n\n"
@@ -62,6 +136,7 @@ def send_password_reset_code(email: str, code: str) -> None:
     )
     if not sent:
         print(f"[PasswordReset] fallback log for {_masked(email)}: code={code}")
+    return sent
 
 
 def send_registration_welcome_email(
@@ -69,7 +144,7 @@ def send_registration_welcome_email(
     code: str,
     *,
     full_name: str | None = None,
-) -> None:
+) -> bool:
     """Welcome new users; verification is optional and done in app settings."""
     display_name = full_name.strip() if full_name and full_name.strip() else None
     greeting = f"Hi {display_name}," if display_name else "Hi,"
@@ -139,9 +214,10 @@ def send_registration_welcome_email(
     )
     if not sent:
         print(f"[WelcomeEmail] fallback log for {_masked(email)}: code={code}")
+    return sent
 
 
-def send_email_verification_code(email: str, code: str) -> None:
+def send_email_verification_code(email: str, code: str) -> bool:
     body = (
         "You requested an email verification code for SecureNet.\n\n"
         f"Your code is: {code}\n\n"
@@ -156,4 +232,4 @@ def send_email_verification_code(email: str, code: str) -> None:
     )
     if not sent:
         print(f"[EmailVerification] fallback log for {_masked(email)}: code={code}")
-
+    return sent

@@ -4,6 +4,8 @@ import '../models/device.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 
+enum WelcomeEmailStatus { none, sent, failed }
+
 class AppState extends ChangeNotifier {
   static const String _scanHistoryStorageKey = 'scan_history_v1';
   static const String _profileStorageKey = 'profile_v1';
@@ -32,6 +34,7 @@ class AppState extends ChangeNotifier {
   bool get promptEmailVerification => _promptEmailVerification;
   bool _pendingWelcomeEmailNotice = false;
   bool get pendingWelcomeEmailNotice => _pendingWelcomeEmailNotice;
+  WelcomeEmailStatus _welcomeEmailStatus = WelcomeEmailStatus.none;
 
   String _displayName = 'SecureNet User';
   String get displayName => _displayName;
@@ -63,6 +66,7 @@ class AppState extends ChangeNotifier {
     bool emailVerified = false,
     bool promptEmailVerification = false,
     bool showWelcomeEmailNotice = false,
+    WelcomeEmailStatus welcomeEmailStatus = WelcomeEmailStatus.none,
   }) {
     _accessToken = token;
     _refreshToken = refreshToken;
@@ -72,8 +76,9 @@ class AppState extends ChangeNotifier {
     }
     _emailVerified = emailVerified;
     _promptEmailVerification = !emailVerified && promptEmailVerification;
-    if (showWelcomeEmailNotice) {
+    if (showWelcomeEmailNotice || welcomeEmailStatus != WelcomeEmailStatus.none) {
       _pendingWelcomeEmailNotice = true;
+      _welcomeEmailStatus = welcomeEmailStatus;
     }
     _isAuthenticated = true;
     _persistAuth();
@@ -97,6 +102,7 @@ class AppState extends ChangeNotifier {
     _emailVerified = false;
     _promptEmailVerification = false;
     _pendingWelcomeEmailNotice = false;
+    _welcomeEmailStatus = WelcomeEmailStatus.none;
     _scanHistory = [];
     _scanConsentAccepted = false;
     _persistScanHistory();
@@ -110,10 +116,16 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool consumeWelcomeEmailNotice() {
-    if (!_pendingWelcomeEmailNotice) return false;
+  WelcomeEmailStatus consumeWelcomeEmailStatus() {
+    if (!_pendingWelcomeEmailNotice) return WelcomeEmailStatus.none;
     _pendingWelcomeEmailNotice = false;
-    return true;
+    final status = _welcomeEmailStatus;
+    _welcomeEmailStatus = WelcomeEmailStatus.none;
+    return status;
+  }
+
+  bool consumeWelcomeEmailNotice() {
+    return consumeWelcomeEmailStatus() == WelcomeEmailStatus.sent;
   }
 
   Future<void> setEmailVerified(bool value) async {

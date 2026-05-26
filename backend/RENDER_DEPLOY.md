@@ -100,7 +100,7 @@ Verification and password-reset codes are sent over **SMTP** when enabled.
 | `SENDGRID_API_KEY` | your API key (do not commit to git) |
 | `EMAIL_FROM` | the **exact** verified sender address in SendGrid |
 
-SendGrid SMTP defaults apply automatically (`smtp.sendgrid.net`, user `apikey`). Optional overrides: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`.
+SendGrid SMTP defaults apply automatically (`smtp.sendgrid.net`, user `apikey`). The backend prefers the **SendGrid HTTP API** (port 443), which works reliably on Render where SMTP ports may be blocked.
 
 After deploy, test **Resend verification** or **Forgot password** from the app; check Render **Logs** if delivery fails (unverified `EMAIL_FROM` is the usual cause).
 

@@ -6,7 +6,7 @@ import hashlib
 import re
 import secrets
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field
@@ -71,6 +71,7 @@ class TokenOut(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: ProfileOut
+    welcome_email_sent: bool | None = None
 
 
 class ProfileUpdateIn(BaseModel):
@@ -166,14 +167,9 @@ def _send_verification_code(email: str, code: str) -> None:
     send_email_verification_code(email=email, code=code)
 
 
-def _send_registration_welcome(email: str, code: str, full_name: str | None) -> None:
-    send_registration_welcome_email(email=email, code=code, full_name=full_name)
-
-
 @router.post("/auth/register", response_model=TokenOut)
 async def register(
     payload: RegisterIn,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     email = payload.email.lower().strip()
@@ -204,17 +200,17 @@ async def register(
         )
     )
     db.commit()
-    background_tasks.add_task(
-        _send_registration_welcome,
-        email,
-        code,
-        user.full_name,
+    welcome_sent = send_registration_welcome_email(
+        email=email,
+        code=code,
+        full_name=user.full_name,
     )
 
     return TokenOut(
         access_token=_create_access_token(user),
         refresh_token=_issue_refresh_token(user, db),
         user=_to_profile(user),
+        welcome_email_sent=welcome_sent,
     )
 
 

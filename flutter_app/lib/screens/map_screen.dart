@@ -1,6 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/device.dart';
+import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
-import '../services/api_service.dart';
+import '../utils/risk_utils.dart';
+import 'device_detail_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -9,18 +15,29 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
-  final ApiService _api = ApiService();
-  late Future<bool> _healthFuture;
+class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
+  late final AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
-    _healthFuture = _api.healthCheck();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final analysis = context.watch<AppState>().lastAnalysis;
+    final devices = analysis?.devices ?? const <DeviceAnalysis>[];
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
@@ -30,33 +47,12 @@ class _MapScreenState extends State<MapScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppTheme.spacingMd),
-              _buildHeader(context),
-              const SizedBox(height: AppTheme.spacingXl),
+              _buildHeader(context, devices.length),
+              const SizedBox(height: AppTheme.spacingMd),
               Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceVariant.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-                    border: Border.all(color: AppTheme.outline.withOpacity(0.2)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: 1.1,
-                        child: _buildTopology(),
-                      ),
-                    ),
-                  ),
-                ),
+                child: devices.isEmpty
+                    ? _buildEmptyState(context)
+                    : _buildLiveTopology(context, devices),
               ),
               const SizedBox(height: AppTheme.spacingLg),
             ],
@@ -66,197 +62,236 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildHeader(BuildContext context, int deviceCount) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Network map',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppTheme.onSurface,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                    ),
+        Text(
+          'Network map',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: AppTheme.onSurface,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(height: AppTheme.spacingXs),
-              Text(
-                'High-level view of your Wi‑Fi topology',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.onSurfaceVariant,
-                    ),
-              ),
-            ],
-          ),
         ),
-        const SizedBox(width: AppTheme.spacingSm),
-        FutureBuilder<bool>(
-          future: _healthFuture,
-          builder: (context, snapshot) {
-            final online = snapshot.data ?? false;
-            return Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingMd,
-                vertical: AppTheme.spacingSm,
+        const SizedBox(height: AppTheme.spacingXs),
+        Text(
+          deviceCount == 0
+              ? 'Run a scan to map connected devices'
+              : '$deviceCount connected device${deviceCount == 1 ? '' : 's'} from your latest scan',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.onSurfaceVariant,
               ),
-              decoration: BoxDecoration(
-                color: (online ? AppTheme.success : AppTheme.error).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                border: Border.all(
-                  color: (online ? AppTheme.success : AppTheme.error).withOpacity(0.3),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.hub_outlined, size: 56, color: AppTheme.primary.withValues(alpha: 0.8)),
+          const SizedBox(height: AppTheme.spacingMd),
+          Text(
+            'No devices mapped yet',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppTheme.onSurface,
+                  fontWeight: FontWeight.w600,
                 ),
+          ),
+          const SizedBox(height: AppTheme.spacingSm),
+          Text(
+            'Scan your Wi-Fi network to see live device topology here.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiveTopology(BuildContext context, List<DeviceAnalysis> devices) {
+    final router = devices.firstWhere(isLikelyRouter, orElse: () => devices.first);
+    final satellites = devices.where((d) => d.ipAddress != router.ipAddress).toList();
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        border: Border.all(color: AppTheme.outline.withValues(alpha: 0.25)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        child: AnimatedBuilder(
+          animation: _pulseController,
+          builder: (context, _) {
+            return CustomPaint(
+              painter: _TopologyLinesPainter(
+                nodeCount: satellites.length,
+                pulse: _pulseController.value,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Icon(
-                    online ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
-                    size: 18,
-                    color: online ? AppTheme.success : AppTheme.error,
+                  Align(
+                    alignment: Alignment.center,
+                    child: _MapNodeCard(
+                      device: router,
+                      pulse: _pulseController.value,
+                      isRouter: true,
+                      onTap: () => _openDevice(context, router),
+                    ),
                   ),
-                  const SizedBox(width: AppTheme.spacingSm),
-                  Text(
-                    online ? 'Online' : 'Offline',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: online ? AppTheme.success : AppTheme.error,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
+                  ...List.generate(satellites.length, (index) {
+                    final angle = (2 * math.pi / satellites.length) * index - math.pi / 2;
+                    final alignment = Alignment(
+                      math.cos(angle) * 0.78,
+                      math.sin(angle) * 0.72,
+                    );
+                    return Align(
+                      alignment: alignment,
+                      child: _MapNodeCard(
+                        device: satellites[index],
+                        pulse: _pulseController.value,
+                        onTap: () => _openDevice(context, satellites[index]),
+                      ),
+                    );
+                  }),
                 ],
               ),
             );
           },
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildTopology() {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Align(
-          alignment: const Alignment(0, 0),
-          child: _MapNodeCard(
-            icon: Icons.router_rounded,
-            label: 'Router',
-            subtitle: '192.168.1.1',
-            color: AppTheme.primary,
-          ),
-        ),
-        Align(
-          alignment: const Alignment(-0.75, -0.55),
-          child: _MapNodeCard(
-            icon: Icons.desktop_windows_rounded,
-            label: 'Laptop',
-            subtitle: '192.168.1.24',
-            color: AppTheme.secure,
-          ),
-        ),
-        Align(
-          alignment: const Alignment(0.8, -0.5),
-          child: _MapNodeCard(
-            icon: Icons.smartphone_rounded,
-            label: 'Phone',
-            subtitle: '192.168.1.42',
-            color: AppTheme.lowRisk,
-          ),
-        ),
-        Align(
-          alignment: const Alignment(-0.85, 0.65),
-          child: _MapNodeCard(
-            icon: Icons.tv_rounded,
-            label: 'Smart TV',
-            subtitle: '192.168.1.67',
-            color: AppTheme.mediumRisk,
-          ),
-        ),
-        Align(
-          alignment: const Alignment(0.75, 0.7),
-          child: _MapNodeCard(
-            icon: Icons.devices_other_rounded,
-            label: 'Unknown',
-            subtitle: '192.168.1.88',
-            color: AppTheme.critical,
-          ),
-        ),
-      ],
+  void _openDevice(BuildContext context, DeviceAnalysis device) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => DeviceDetailScreen(device: device)),
     );
+  }
+}
+
+class _TopologyLinesPainter extends CustomPainter {
+  _TopologyLinesPainter({required this.nodeCount, required this.pulse});
+
+  final int nodeCount;
+  final double pulse;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (nodeCount == 0) return;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint()
+      ..color = AppTheme.primary.withValues(alpha: 0.18 + pulse * 0.18)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    for (var i = 0; i < nodeCount; i++) {
+      final angle = (2 * math.pi / nodeCount) * i - math.pi / 2;
+      final end = Offset(
+        center.dx + math.cos(angle) * size.width * 0.34,
+        center.dy + math.sin(angle) * size.height * 0.30,
+      );
+      canvas.drawLine(center, end, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TopologyLinesPainter oldDelegate) {
+    return oldDelegate.pulse != pulse || oldDelegate.nodeCount != nodeCount;
   }
 }
 
 class _MapNodeCard extends StatelessWidget {
   const _MapNodeCard({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.color,
+    required this.device,
+    required this.pulse,
+    required this.onTap,
+    this.isRouter = false,
   });
 
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final Color color;
+  final DeviceAnalysis device;
+  final double pulse;
+  final VoidCallback onTap;
+  final bool isRouter;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
-        vertical: AppTheme.spacingSm,
-      ),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: color.withOpacity(0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppTheme.spacingSm),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+    final color = riskColor(device.riskLevel);
+    final scale = isRouter ? 1.0 + pulse * 0.04 : 0.96 + pulse * 0.04;
+
+    return Transform.scale(
+      scale: scale,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 150),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacingSm,
+              vertical: AppTheme.spacingSm,
             ),
-            child: Icon(icon, size: 20, color: color),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+              border: Border.all(color: color.withValues(alpha: 0.55)),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.12 + pulse * 0.12),
+                  blurRadius: 14,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingSm),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  ),
+                  child: Icon(deviceIcon(device), size: 18, color: color),
+                ),
+                const SizedBox(width: AppTheme.spacingSm),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isRouter ? 'Router' : deviceLabel(device),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: AppTheme.onSurface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      Text(
+                        device.ipAddress,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppTheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(width: AppTheme.spacingSm),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppTheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppTheme.onSurfaceVariant,
-                    ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

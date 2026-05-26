@@ -90,6 +90,7 @@ class SecureNetApp extends StatelessWidget {
                         }
                         _api.setBearerToken(token);
                         _api.setRefreshToken(refreshToken);
+                        final welcomeSent = session['welcome_email_sent'] as bool?;
                         state.loginWithSession(
                           token: token,
                           refreshToken: refreshToken,
@@ -97,7 +98,9 @@ class SecureNetApp extends StatelessWidget {
                           displayName: user['full_name'] as String?,
                           emailVerified: user['is_email_verified'] == true,
                           promptEmailVerification: false,
-                          showWelcomeEmailNotice: true,
+                          welcomeEmailStatus: welcomeSent == true
+                              ? WelcomeEmailStatus.sent
+                              : WelcomeEmailStatus.failed,
                         );
                         await state.syncProfileAndHistoryFromBackend(_api);
                         return null;
@@ -138,13 +141,18 @@ class _AuthedHomeState extends State<_AuthedHome> {
 
   void _maybeShowWelcomeEmailNotice() {
     final state = context.read<AppState>();
-    if (!state.consumeWelcomeEmailNotice()) return;
+    final status = state.consumeWelcomeEmailStatus();
+    if (status == WelcomeEmailStatus.none) return;
+
+    final message = status == WelcomeEmailStatus.sent
+        ? 'Welcome! We sent an email to ${state.email} with your account details.'
+        : 'Account created, but we could not send the welcome email yet. Check spam or try again later.';
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          'Welcome! We sent an email to ${state.email} with your account details.',
-        ),
+        content: Text(message),
         behavior: SnackBarBehavior.floating,
+        backgroundColor: status == WelcomeEmailStatus.sent ? null : AppTheme.warning.withValues(alpha: 0.95),
       ),
     );
   }

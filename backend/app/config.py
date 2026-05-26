@@ -51,7 +51,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def apply_sendgrid_defaults(self) -> "Settings":
-        """When SENDGRID_API_KEY is set, default to SendGrid SMTP relay."""
+        """When SENDGRID_API_KEY is set, default to SendGrid delivery."""
         if self.SENDGRID_API_KEY:
             if not self.SMTP_HOST:
                 object.__setattr__(self, "SMTP_HOST", "smtp.sendgrid.net")
@@ -59,6 +59,7 @@ class Settings(BaseSettings):
                 object.__setattr__(self, "SMTP_USERNAME", "apikey")
             if not self.SMTP_PASSWORD:
                 object.__setattr__(self, "SMTP_PASSWORD", self.SENDGRID_API_KEY)
+            object.__setattr__(self, "EMAIL_DELIVERY_ENABLED", True)
         return self
     
     class Config:
