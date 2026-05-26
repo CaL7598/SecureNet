@@ -307,15 +307,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _reverifyEmail(AppState appState) async {
-    final api = ApiService();
+    final api = ApiService()..setBearerToken(appState.accessToken);
     final resent = await api.resendVerification(appState.email);
     if (!mounted) return;
+    if (!resent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            api.lastMessageError ?? 'Could not send verification email right now.',
+          ),
+        ),
+      );
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          resent
-              ? 'Verification code sent to ${appState.email}. Check inbox and spam.'
-              : 'Could not send verification email right now.',
+          'Verification code sent to ${appState.email}. Check inbox and spam.',
         ),
       ),
     );

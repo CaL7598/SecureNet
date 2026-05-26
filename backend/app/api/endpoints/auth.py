@@ -88,6 +88,16 @@ def _hash_code(code: str) -> str:
     return hashlib.sha256(code.encode("utf-8")).hexdigest()
 
 
+def _normalize_code(code: str) -> str:
+    """Accept 6-digit codes with optional spaces; pad leading zeros."""
+    digits = "".join(ch for ch in code.strip() if ch.isdigit())
+    if not digits:
+        return code.strip()
+    if len(digits) > 6:
+        digits = digits[-6:]
+    return digits.zfill(6)
+
+
 def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
@@ -165,8 +175,8 @@ def get_current_user_optional(
         return None
 
 
-def _send_verification_code(email: str, code: str) -> None:
-    send_email_verification_code(email=email, code=code)
+def _send_verification_code(email: str, code: str) -> bool:
+    return send_email_verification_code(email=email, code=code)
 
 
 def _send_welcome_with_detail(
@@ -330,8 +340,9 @@ async def verify_email(payload: VerifyEmailIn, db: Session = Depends(get_db)):
         .order_by(EmailVerificationToken.requested_at.desc())
         .first()
     )
-    if not token or now > token.expires_at or token.code_hash != _hash_code(payload.code.strip()):
-        raise HTTPException(status_code=400, detail="Invalid verification code.")
+    normalized = _normalize_code(payload.code)
+    if not token or now > token.expires_at or token.code_hash != _hash_code(normalized):
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code.")
 
     token.used_at = now
     user.is_email_verified = True
@@ -346,6 +357,10 @@ async def resend_verification(payload: PasswordResetRequestIn, db: Session = Dep
     if not user:
         return ApiMessageOut(message="If the account exists, a code has been sent.")
     now = datetime.now(timezone.utc)
+    db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.user_id == user.id,
+        EmailVerificationToken.used_at.is_(None),
+    ).update({EmailVerificationToken.used_at: now}, synchronize_session=False)
     code = f"{secrets.randbelow(1_000_000):06d}"
     db.add(
         EmailVerificationToken(
@@ -356,8 +371,12 @@ async def resend_verification(payload: PasswordResetRequestIn, db: Session = Dep
         )
     )
     db.commit()
-    _send_verification_code(email=email, code=code)
-    return ApiMessageOut(message="If the account exists, a code has been sent.")
+    if not _send_verification_code(email=email, code=code):
+        raise HTTPException(
+            status_code=503,
+            detail="Could not send verification email. Try again in a moment.",
+        )
+    return ApiMessageOut(message="Verification code sent. Check your inbox and spam folder.")
 
 
 @router.post("/auth/password-reset/request", response_model=ApiMessageOut)
@@ -365,14 +384,7 @@ async def request_password_reset(
     payload: PasswordResetRequestIn,
     db: Session = Depends(get_db),
 ):
-    """
-    Generate a one-time reset code for an email.
-
-    Note:
-    - Returns generic success message to avoid user enumeration.
-    - For now, code delivery is simulated by logging/return flow only.
-      Integrate an email/SMS provider in production.
-    """
+  """Generate a one-time reset code and email it when the account exists."""
     now = datetime.now(timezone.utc)
     email = payload.email.lower().strip()
     if not _EMAIL_RE.match(email):
@@ -384,13 +396,16 @@ async def request_password_reset(
         .order_by(PasswordResetToken.requested_at.desc())
         .first()
     )
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return ApiMessageOut(message="If that account exists, a reset code has been sent.")
+
     if latest and (now - latest.requested_at).total_seconds() < settings.PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS:
         raise HTTPException(
             status_code=429,
             detail="Please wait before requesting another reset code.",
         )
 
-    # Mark stale, unused tokens as used to keep confirm logic straightforward.
     db.query(PasswordResetToken).filter(
         PasswordResetToken.email == email,
         PasswordResetToken.used_at.is_(None),
@@ -409,8 +424,12 @@ async def request_password_reset(
     db.add(token)
     db.commit()
 
-    send_password_reset_code(email=email, code=code)
-    return ApiMessageOut(message="If that account exists, a reset code has been sent.")
+    if not send_password_reset_code(email=email, code=code):
+        raise HTTPException(
+            status_code=503,
+            detail="Could not send reset email. Try again in a moment.",
+        )
+    return ApiMessageOut(message="Reset code sent. Check your inbox and spam folder.")
 
 
 @router.post("/auth/password-reset/confirm", response_model=ApiMessageOut)
@@ -418,13 +437,7 @@ async def confirm_password_reset(
     payload: PasswordResetConfirmIn,
     db: Session = Depends(get_db),
 ):
-    """
-    Validate reset code and accept new password.
-
-    Note:
-    - This endpoint currently validates code flow only.
-    - Integrate with a real user/auth table to persist new password hash.
-    """
+    """Validate reset code and persist a new password hash."""
     email = payload.email.lower().strip()
     if not _EMAIL_RE.match(email):
         raise HTTPException(status_code=422, detail="Invalid email.")
@@ -447,16 +460,17 @@ async def confirm_password_reset(
         db.commit()
         raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
 
-    if _hash_code(payload.code.strip()) != token.code_hash:
+    normalized = _normalize_code(payload.code)
+    if _hash_code(normalized) != token.code_hash:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
 
     token.used_at = now
+    user.password_hash = pwd_context.hash(payload.new_password)
     db.commit()
-
-    user = db.query(User).filter(User.email == email).first()
-    if user:
-        user.password_hash = pwd_context.hash(payload.new_password)
-        db.commit()
 
     return ApiMessageOut(message="Password has been reset successfully.")
 

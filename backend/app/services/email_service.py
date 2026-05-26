@@ -13,6 +13,8 @@ import httpx
 
 from app.config import settings
 from app.services.email_templates import (
+    build_password_reset_html,
+    build_password_reset_plain,
     build_verification_html,
     build_verification_plain,
     build_welcome_html,
@@ -219,17 +221,15 @@ def _deliver_email(
 
 
 def send_password_reset_code(email: str, code: str) -> bool:
-    body = (
-        "You requested a password reset for SecureNet.\n\n"
-        f"Your verification code is: {code}\n\n"
-        f"This code expires in {settings.PASSWORD_RESET_CODE_TTL_MINUTES} minutes."
-    )
+    subject, body = build_password_reset_plain(code=code)
+    html_body = build_password_reset_html(code=code)
     if settings.DEBUG:
         print(f"[PasswordReset] code for {email}: {code}")
     sent = _deliver_email(
         to_email=email,
-        subject="SecureNet password reset code",
+        subject=subject,
         body=body,
+        html_body=html_body,
     )
     if not sent:
         print(f"[PasswordReset] fallback log for {_masked(email)}: code={code}")

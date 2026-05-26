@@ -57,21 +57,20 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         _requested = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Reset code sent. Check backend logs/email provider.'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(
+            'Reset code sent to $email. Check your inbox and spam folder.',
+          ),
+          duration: const Duration(seconds: 3),
         ),
       );
       return;
     }
 
-    final backendOnline = await _api.healthCheck();
     if (!mounted) return;
     setState(() {
       _loading = false;
-      _error = backendOnline
-          ? 'Reset endpoint unavailable. Restart backend and try again.'
-          : 'Backend unreachable. Check API server and phone/PC network.';
+      _error = _api.lastMessageError ?? 'Could not send reset code. Try again.';
     });
   }
 
@@ -119,7 +118,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (!ok) {
       setState(() {
-        _error = 'Invalid code or reset failed.';
+        _error = _api.lastMessageError ?? 'Invalid or expired code. Request a new one.';
       });
       return;
     }

@@ -40,15 +40,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     if (!mounted) return;
     if (ok) {
       await appState.setEmailVerified(true);
-      setState(() {
-        _busy = false;
-        _message = 'Email verified successfully.';
-      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email verified successfully.')),
+      );
+      Navigator.of(context).pop();
       return;
     }
     setState(() {
       _busy = false;
-      _message = 'Verification failed. Check the code and try again.';
+      _message = widget.api.lastMessageError ??
+          'Verification failed. Check the code and try again.';
     });
   }
 
@@ -62,7 +64,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     if (!mounted) return;
     setState(() {
       _busy = false;
-      _message = ok ? 'A new verification code was sent.' : 'Unable to resend code right now.';
+      _message = ok
+          ? 'Verification code sent. Check your inbox and spam folder.'
+          : (widget.api.lastMessageError ?? 'Unable to resend code right now.');
     });
   }
 
@@ -95,7 +99,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     ),
                     const SizedBox(height: AppTheme.spacingSm),
                     Text(
-                      'Enter the code sent to ${appState.email} to activate your SecureNet account.',
+                      'Enter the 6-digit code sent to ${appState.email}. Use Settings → Verify email if you need a new code.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: AppTheme.onSurfaceVariant,
                           ),

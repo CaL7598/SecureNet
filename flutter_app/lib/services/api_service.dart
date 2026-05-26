@@ -14,6 +14,8 @@ class ApiService {
   static bool _refreshInFlight = false;
   String? _lastAuthError;
   String? get lastAuthError => _lastAuthError;
+  String? _lastMessageError;
+  String? get lastMessageError => _lastMessageError;
   static const Duration _authTimeout = Duration(seconds: 75);
 
   void setBearerToken(String? token) {
@@ -121,17 +123,37 @@ class ApiService {
     }
   }
 
+  static String _normalizeCode(String code) {
+    final digits = code.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return code.trim();
+    final trimmed = digits.length > 6 ? digits.substring(digits.length - 6) : digits;
+    return trimmed.padLeft(6, '0');
+  }
+
   Future<bool> requestPasswordReset(String email) async {
     try {
+      await _wakeBackend();
       final res = await http
           .post(
             Uri.parse('$_baseUrl/api/v1/auth/password-reset/request'),
             headers: _headers(),
-            body: jsonEncode({'email': email}),
+            body: jsonEncode({'email': email.trim().toLowerCase()}),
           )
-          .timeout(const Duration(seconds: 10));
-      return res.statusCode >= 200 && res.statusCode < 300;
+          .timeout(_authTimeout);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        _lastMessageError = null;
+        return true;
+      }
+      _lastMessageError = _extractErrorMessage(res);
+      return false;
+    } on TimeoutException {
+      _lastMessageError = 'Server is waking up. Please wait and try again.';
+      return false;
+    } on SocketException {
+      _lastMessageError = 'Network unavailable. Check Wi-Fi or mobile data.';
+      return false;
     } catch (_) {
+      _lastMessageError = 'Unable to reach server.';
       return false;
     }
   }
@@ -142,19 +164,32 @@ class ApiService {
     required String newPassword,
   }) async {
     try {
+      await _wakeBackend();
       final res = await http
           .post(
             Uri.parse('$_baseUrl/api/v1/auth/password-reset/confirm'),
             headers: _headers(),
             body: jsonEncode({
-              'email': email,
-              'code': code,
+              'email': email.trim().toLowerCase(),
+              'code': _normalizeCode(code),
               'new_password': newPassword,
             }),
           )
-          .timeout(const Duration(seconds: 10));
-      return res.statusCode >= 200 && res.statusCode < 300;
+          .timeout(_authTimeout);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        _lastMessageError = null;
+        return true;
+      }
+      _lastMessageError = _extractErrorMessage(res);
+      return false;
+    } on TimeoutException {
+      _lastMessageError = 'Server is waking up. Please wait and try again.';
+      return false;
+    } on SocketException {
+      _lastMessageError = 'Network unavailable. Check Wi-Fi or mobile data.';
+      return false;
     } catch (_) {
+      _lastMessageError = 'Unable to reach server.';
       return false;
     }
   }
@@ -321,15 +356,31 @@ class ApiService {
     required String code,
   }) async {
     try {
+      await _wakeBackend();
       final res = await http
           .post(
             Uri.parse('$_baseUrl/api/v1/auth/verify-email'),
             headers: _headers(),
-            body: jsonEncode({'email': email, 'code': code}),
+            body: jsonEncode({
+              'email': email.trim().toLowerCase(),
+              'code': _normalizeCode(code),
+            }),
           )
-          .timeout(const Duration(seconds: 10));
-      return res.statusCode >= 200 && res.statusCode < 300;
+          .timeout(_authTimeout);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        _lastMessageError = null;
+        return true;
+      }
+      _lastMessageError = _extractErrorMessage(res);
+      return false;
+    } on TimeoutException {
+      _lastMessageError = 'Server is waking up. Please wait and try again.';
+      return false;
+    } on SocketException {
+      _lastMessageError = 'Network unavailable. Check Wi-Fi or mobile data.';
+      return false;
     } catch (_) {
+      _lastMessageError = 'Unable to reach server.';
       return false;
     }
   }
@@ -348,15 +399,28 @@ class ApiService {
 
   Future<bool> resendVerification(String email) async {
     try {
+      await _wakeBackend();
       final res = await http
           .post(
             Uri.parse('$_baseUrl/api/v1/auth/resend-verification'),
             headers: _headers(),
-            body: jsonEncode({'email': email}),
+            body: jsonEncode({'email': email.trim().toLowerCase()}),
           )
-          .timeout(const Duration(seconds: 10));
-      return res.statusCode >= 200 && res.statusCode < 300;
+          .timeout(_authTimeout);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        _lastMessageError = null;
+        return true;
+      }
+      _lastMessageError = _extractErrorMessage(res);
+      return false;
+    } on TimeoutException {
+      _lastMessageError = 'Server is waking up. Please wait and try again.';
+      return false;
+    } on SocketException {
+      _lastMessageError = 'Network unavailable. Check Wi-Fi or mobile data.';
+      return false;
     } catch (_) {
+      _lastMessageError = 'Unable to reach server.';
       return false;
     }
   }
