@@ -86,6 +86,24 @@ Render **Shell** for the service:
 cd /app && python scripts/seed_data.py
 ```
 
+## Email (SendGrid)
+
+Verification and password-reset codes are sent over **SMTP** when enabled.
+
+1. [SendGrid](https://sendgrid.com) → create an API key (Mail Send permission).
+2. **Settings → Sender Authentication** → verify a **Single Sender** or your domain.
+3. On Render → **Environment**:
+
+| Variable | Value |
+|----------|--------|
+| `EMAIL_DELIVERY_ENABLED` | `true` |
+| `SENDGRID_API_KEY` | your API key (do not commit to git) |
+| `EMAIL_FROM` | the **exact** verified sender address in SendGrid |
+
+SendGrid SMTP defaults apply automatically (`smtp.sendgrid.net`, user `apikey`). Optional overrides: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`.
+
+After deploy, test **Resend verification** or **Forgot password** from the app; check Render **Logs** if delivery fails (unverified `EMAIL_FROM` is the usual cause).
+
 ## Notes
 
 - **Free Web** on Render **sleeps** when idle; first request after a while can be slow—normal, not the same as DB deletion.

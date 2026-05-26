@@ -3,7 +3,7 @@ Application Configuration
 """
 from typing import List
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -35,8 +35,9 @@ class Settings(BaseSettings):
     EMAIL_VERIFICATION_CODE_TTL_MINUTES: int = 20
     RATE_LIMIT_REQUESTS_PER_MINUTE: int = 120
 
-    # Email delivery (SMTP)
+    # Email delivery (SendGrid SMTP or generic SMTP)
     EMAIL_DELIVERY_ENABLED: bool = False
+    SENDGRID_API_KEY: str = ""
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USERNAME: str = ""
@@ -47,6 +48,18 @@ class Settings(BaseSettings):
     # App
     APP_NAME: str = "SecureNet"
     DEBUG: bool = True
+
+    @model_validator(mode="after")
+    def apply_sendgrid_defaults(self) -> "Settings":
+        """When SENDGRID_API_KEY is set, default to SendGrid SMTP relay."""
+        if self.SENDGRID_API_KEY:
+            if not self.SMTP_HOST:
+                object.__setattr__(self, "SMTP_HOST", "smtp.sendgrid.net")
+            if not self.SMTP_USERNAME:
+                object.__setattr__(self, "SMTP_USERNAME", "apikey")
+            if not self.SMTP_PASSWORD:
+                object.__setattr__(self, "SMTP_PASSWORD", self.SENDGRID_API_KEY)
+        return self
     
     class Config:
         env_file = ".env"

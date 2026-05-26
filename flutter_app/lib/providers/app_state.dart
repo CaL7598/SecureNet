@@ -30,6 +30,8 @@ class AppState extends ChangeNotifier {
   bool get emailVerified => _emailVerified;
   bool _promptEmailVerification = false;
   bool get promptEmailVerification => _promptEmailVerification;
+  bool _pendingWelcomeEmailNotice = false;
+  bool get pendingWelcomeEmailNotice => _pendingWelcomeEmailNotice;
 
   String _displayName = 'SecureNet User';
   String get displayName => _displayName;
@@ -60,6 +62,7 @@ class AppState extends ChangeNotifier {
     String? displayName,
     bool emailVerified = false,
     bool promptEmailVerification = false,
+    bool showWelcomeEmailNotice = false,
   }) {
     _accessToken = token;
     _refreshToken = refreshToken;
@@ -69,6 +72,9 @@ class AppState extends ChangeNotifier {
     }
     _emailVerified = emailVerified;
     _promptEmailVerification = !emailVerified && promptEmailVerification;
+    if (showWelcomeEmailNotice) {
+      _pendingWelcomeEmailNotice = true;
+    }
     _isAuthenticated = true;
     _persistAuth();
     _persistProfile();
@@ -90,6 +96,7 @@ class AppState extends ChangeNotifier {
     _refreshToken = null;
     _emailVerified = false;
     _promptEmailVerification = false;
+    _pendingWelcomeEmailNotice = false;
     _scanHistory = [];
     _scanConsentAccepted = false;
     _persistScanHistory();
@@ -101,6 +108,12 @@ class AppState extends ChangeNotifier {
     _scanConsentAccepted = true;
     await _persistProfile();
     notifyListeners();
+  }
+
+  bool consumeWelcomeEmailNotice() {
+    if (!_pendingWelcomeEmailNotice) return false;
+    _pendingWelcomeEmailNotice = false;
+    return true;
   }
 
   Future<void> setEmailVerified(bool value) async {

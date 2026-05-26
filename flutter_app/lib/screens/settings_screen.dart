@@ -198,32 +198,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                 ),
                 const SizedBox(height: AppTheme.spacingXs),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingSm,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: appState.emailVerified
-                        ? AppTheme.success.withValues(alpha: 0.16)
-                        : AppTheme.mediumRisk.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: appState.emailVerified
-                          ? AppTheme.success.withValues(alpha: 0.35)
-                          : AppTheme.mediumRisk.withValues(alpha: 0.35),
+                if (appState.emailVerified)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingSm,
+                      vertical: 4,
                     ),
-                  ),
-                  child: Text(
-                    appState.emailVerified ? 'Email verified' : 'Email not verified',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: appState.emailVerified ? AppTheme.success : AppTheme.mediumRisk,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
-                if (!appState.emailVerified) ...[
-                  const SizedBox(height: AppTheme.spacingXs),
+                    decoration: BoxDecoration(
+                      color: AppTheme.success.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: AppTheme.success.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Text(
+                      'Email verified',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppTheme.success,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  )
+                else
                   TextButton.icon(
                     onPressed: () => _reverifyEmail(appState),
                     style: TextButton.styleFrom(
@@ -233,9 +229,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       alignment: Alignment.centerLeft,
                     ),
                     icon: const Icon(Icons.mark_email_read_outlined, size: 16),
-                    label: const Text('Re-verify email'),
+                    label: const Text('Verify email (optional)'),
                   ),
-                ],
                 const SizedBox(height: AppTheme.spacingSm),
                 Text(
                   'Phone: ${appState.phone}',
@@ -292,8 +287,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SnackBar(
         content: Text(
           resent
-              ? 'Verification code sent to ${appState.email}.'
-              : 'Could not send verification code right now.',
+              ? 'Verification email sent to ${appState.email}.'
+              : 'Could not send email right now.',
         ),
       ),
     );

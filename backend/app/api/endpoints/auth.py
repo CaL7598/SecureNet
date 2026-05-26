@@ -6,7 +6,7 @@ import hashlib
 import re
 import secrets
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field
@@ -18,7 +18,11 @@ from app.models.email_verification_token import EmailVerificationToken
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.services.email_service import send_email_verification_code, send_password_reset_code
+from app.services.email_service import (
+    send_email_verification_code,
+    send_password_reset_code,
+    send_registration_welcome_email,
+)
 
 router = APIRouter()
 
@@ -162,8 +166,16 @@ def _send_verification_code(email: str, code: str) -> None:
     send_email_verification_code(email=email, code=code)
 
 
+def _send_registration_welcome(email: str, code: str, full_name: str | None) -> None:
+    send_registration_welcome_email(email=email, code=code, full_name=full_name)
+
+
 @router.post("/auth/register", response_model=TokenOut)
-async def register(payload: RegisterIn, db: Session = Depends(get_db)):
+async def register(
+    payload: RegisterIn,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     email = payload.email.lower().strip()
     if not _EMAIL_RE.match(email):
         raise HTTPException(status_code=422, detail="Invalid email.")
@@ -192,7 +204,12 @@ async def register(payload: RegisterIn, db: Session = Depends(get_db)):
         )
     )
     db.commit()
-    _send_verification_code(email=email, code=code)
+    background_tasks.add_task(
+        _send_registration_welcome,
+        email,
+        code,
+        user.full_name,
+    )
 
     return TokenOut(
         access_token=_create_access_token(user),

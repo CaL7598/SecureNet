@@ -97,6 +97,7 @@ class SecureNetApp extends StatelessWidget {
                           displayName: user['full_name'] as String?,
                           emailVerified: user['is_email_verified'] == true,
                           promptEmailVerification: false,
+                          showWelcomeEmailNotice: true,
                         );
                         await state.syncProfileAndHistoryFromBackend(_api);
                         return null;
@@ -135,11 +136,27 @@ class _AuthedHomeState extends State<_AuthedHome> {
     _syncSession();
   }
 
+  void _maybeShowWelcomeEmailNotice() {
+    final state = context.read<AppState>();
+    if (!state.consumeWelcomeEmailNotice()) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Welcome! We sent an email to ${state.email} with your account details.',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _syncSession() async {
     final state = context.read<AppState>();
     await state.syncProfileAndHistoryFromBackend(widget.api);
     final me = await widget.api.me();
-    if (me != null) return;
+    if (me != null) {
+      if (mounted) _maybeShowWelcomeEmailNotice();
+      return;
+    }
     final refreshed = await widget.api.refreshSession();
     if (refreshed == null) return;
     final token = refreshed['access_token'] as String?;
@@ -157,10 +174,14 @@ class _AuthedHomeState extends State<_AuthedHome> {
       promptEmailVerification: false,
     );
     await state.syncProfileAndHistoryFromBackend(widget.api);
+    if (mounted) _maybeShowWelcomeEmailNotice();
   }
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _maybeShowWelcomeEmailNotice();
+    });
     return const MainScreen();
   }
 }
